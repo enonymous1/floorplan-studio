@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "floorplan-studio"
+version = "2.0.0"
+description = "Render floor plans from YAML/JSON to print-ready SVG, PNG, or PDF."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{name = "enonymous1"}]
+keywords = ["floor-plan", "svg", "matplotlib", "architecture"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "matplotlib>=3.8",
+  "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/enonymous1/floorplan-studio"
+Repository = "https://github.com/enonymous1/floorplan-studio"
+
+[project.scripts]
+floorplan = "floorplan.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+floorplan = ["data/*.yaml"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,86 @@
+# Floor Plan Data File
+# This YAML file defines the floor plan layout including rooms, doors, windows, and boundary.
+# All measurements are in feet (as defined in floor_plan_style.yaml).
+# The coordinate system: (0,0) is bottom-left, x increases right, y increases up.
+# Scaling and rendering settings are controlled in floor_plan_style.yaml.
+
+# Boundary: Defines the outer perimeter of the floor plan as a list of [x, y] points.
+# The boundary should form a closed shape (first and last points connect).
+boundary:
+  - [0, 0]      # Bottom-left corner
+  - [32, 0]     # Bottom-right corner
+  - [32, 27]    # Top-right corner
+  - [0, 27]     # Top-left corner
+
+# Rooms: List of rooms in the floor plan.
+# Each room has:
+# - name: String identifier
+# - rect: [x, y, width, height] - position and size in feet
+# - doors: Optional list of door positions as [start_pos, end_pos]
+# - windows: Optional list of window positions as [start_pos, end_pos]
+rooms:
+  - name: Living Room
+    rect: [0, 0, 20, 15]  # x=0, y=0, width=20ft, height=15ft
+    doors:
+      - pos: [[10, 0], [13, 0]]  # Door from (10,0) to (13,0) - front entrance
+        swing: in  # Swing inward
+    windows:
+      - pos: [[2, 15], [8, 15]]   # Window along front wall
+      - pos: [[12, 15], [18, 15]] # Another window
+
+  - name: Kitchen
+    rect: [20, 0, 12, 15]  # Adjacent to living room
+    doors:
+      - pos: [[20, 6], [20, 9]]  # Door to backyard
+        swing: out  # Swing outward
+    windows:
+      - pos: [[32, 4], [32, 11]] # Side window
+
+  - name: Master Bedroom
+    rect: [0, 15, 15, 12]  # Above living room
+    doors:
+      - pos: [[15, 18], [15, 21]] # Door to hallway
+        swing: in  # Swing inward
+    windows:
+      - pos: [[0, 18], [0, 24]]   # Front window
+
+  - name: Bathroom
+    rect: [15, 15, 7, 12]  # Next to master bedroom
+    doors:
+      - pos: [[15, 16], [15, 18]] # Door from hallway
+        swing: in  # Swing inward
+    windows:
+      - pos: [[17, 27], [22, 27]] # Small window
+
+  # Additional rooms for a more complete floor plan
+  - name: Bedroom 2
+    rect: [22, 15, 10, 12]  # Next to bathroom
+    doors:
+      - pos: [[22, 18], [22, 21]] # Door from hallway
+        swing: in  # Swing inward
+    windows:
+      - pos: [[32, 18], [32, 24]] # Side window
+
+  - name: Hallway
+    rect: [15, 15, 7, 12]  # Overlaps bathroom for connectivity
+    # Hallway typically has no windows, just doors to rooms
+    doors:
+      - pos: [[15, 18], [15, 21]] # To master bedroom
+        swing: in  # Swing inward
+      - pos: [[22, 18], [22, 21]] # To bedroom 2
+        swing: in  # Swing inward
+
+  - name: Garage
+    rect: [0, -10, 20, 10]  # Below living room (negative y for basement/garage)
+    doors:
+      - pos: [[10, -10], [13, -10]] # Garage door
+        swing: out  # Garage doors typically swing outward
+    # No windows in garage
+
+# Suggestions for enhancement:
+# - Add more room types: Dining Room, Laundry, Closets, etc.
+# - Include furniture or fixtures if needed for detailed plans
+# - Add labels or notes for special features
+# - Consider adding electrical outlets, plumbing fixtures for detailed plans
+# - For multi-story homes, add floor levels
+# - Units are assumed to be feet; if using metric, update floor_plan_style.yaml accordingly

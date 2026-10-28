@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floor Plan Creator</title>
+    <!-- Built Tailwind CSS is committed in dist/styles.css. Run `npm run build:css` after changing src/tailwind.css. -->
+    <link rel="stylesheet" href="dist/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css"> <!-- local overrides and custom styles -->
+</head>
+<body class="bg-gray-800 text-white min-h-screen">
+
+    <!-- Toolbar -->
+    <div id="toolbar" class="w-24 bg-gray-900 p-3 flex flex-col items-center gap-3 shadow-lg z-10 fixed left-0 top-0 bottom-0">
+        <h1 class="text-xl font-bold text-indigo-400">Tools</h1>
+        
+        <button id="select-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Select & Move (V)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 7.07 17 2.51-7.39 7.39-2.51L4 4z"/></svg>
+        </button>
+        <button id="wall-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Wall (W)">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="21" x2="21" y2="3"></line></svg>
+        </button>
+        <button id="rect-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Room (R)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+        </button>
+        <button id="door-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Door/Opening (D)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"/><path d="M2 20h20"/><path d="M14 12v.01"/></svg>
+        </button>
+        <button id="window-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Window (I)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20M12 2v20M2 12h20M12 2v20M5 2v20M19 2v20"/></svg>
+        </button>
+        <button id="objects-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Place Object (O)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        </button>
+        <button id="label-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Label (T)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14M12 4v16M10 10h4"/></svg>
+        </button>
+        <button id="dim-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Dimension (M)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M5 12l4 4M5 12l4-4M19 12l-4 4M19 12l-4-4"/></svg>
+        </button>
+        <button id="eraser-tool" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Eraser (E)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 7.76l-4.5-4.5a2 2 0 0 0-2.83 0L6 10.17l-4 4 2.83 2.83 4-4L15.83 20a2 2 0 0 0 2.83 0l2.41-2.41a2 2 0 0 0 0-2.83l-4.83-4.83z"/><path d="m22 2-2.5 2.5"/></svg>
+        </button>
+        <div class="flex-1"></div>
+        <div class="w-full p-2 text-center border-t border-gray-700">
+            <label for="show-dims-toggle" class="flex items-center justify-center space-x-2 text-xs cursor-pointer text-gray-300 hover:text-white">
+                <input type="checkbox" id="show-dims-toggle" class="form-checkbox h-4 w-4 bg-gray-800 border-gray-600 text-indigo-500 focus:ring-indigo-600">
+                <span>Show Dimensions</span>
+            </label>
+        </div>
+        <div class="w-full flex justify-center space-x-2 p-2 border-t border-gray-700">
+            <button id="undo-btn" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Undo (Ctrl+Z)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3l-3 2.7"/></svg>
+            </button>
+            <button id="redo-btn" class="tool-btn p-3 rounded-lg hover:bg-indigo-500 transition-colors" title="Redo (Ctrl+Y)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l-3 2.7"/></svg>
+            </button>
+        </div>
+        <div class="w-full flex flex-col gap-2 border-t border-gray-700 pt-3">
+            <span class="text-xs font-semibold text-indigo-400 text-center">Plan</span>
+            <button id="export-json-btn" class="w-full px-2 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition-colors text-xs font-medium" title="Download the plan as JSON (readable by the renderer)">Export JSON</button>
+            <button id="export-yaml-btn" class="w-full px-2 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition-colors text-xs font-medium" title="Download the plan as YAML (readable by the renderer)">Export YAML</button>
+            <button id="import-btn" class="w-full px-2 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors text-xs font-medium" title="Import a plan JSON file exported from this editor">Import JSON</button>
+            <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+        </div>
+        <button id="clear-canvas" class="w-full p-3 rounded-lg bg-red-600 hover:bg-red-700 transition-colors flex items-center justify-center space-x-2" title="Clear Canvas (Ctrl+Backspace)">
+             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+             <span>Clear</span>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-24">
+        <div class="flex flex-col relative">
+            <!-- Canvas -->
+            <div id="canvas-container" class="flex-1 w-full h-screen bg-gray-700 overflow-auto">
+                <canvas id="floorPlanCanvas"></canvas>
+            </div>
+        <!-- Info Footer -->
+        <div class="absolute bottom-0 left-0 bg-gray-900 bg-opacity-80 p-2 rounded-tr text-sm flex space-x-4">
+            <div id="coords">X: 0, Y: 0</div>
+            <div id="zoom-level">Zoom: 100%</div>
+            <div id="scale-info">Scale: 20px = 1ft</div>
+        </div>
+    </div>
+
+    <!-- Clear Confirmation Modal -->
+    <div id="clear-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 class="text-lg font-medium text-white">Clear Canvas</h3>
+            <p class="mt-2 text-sm text-gray-400">Are you sure you want to delete everything on the canvas? You can undo this with Undo (Ctrl+Z).</p>
+            <div class="mt-4 flex justify-end space-x-3">
+                <button id="cancel-clear" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md text-sm font-medium">Cancel</button>
+                <button id="confirm-clear" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-sm font-medium">Confirm Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Label Input Modal -->
+    <div id="label-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 id="label-modal-title" class="text-lg font-medium text-white">Enter Label Text</h3>
+            <p id="label-modal-subtitle" class="mt-2 text-sm text-gray-400">Type the desired text for your label below.</p>
+            <div class="mt-4">
+                <input type="text" id="label-input" class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="mt-4 flex justify-end space-x-3">
+                <button id="cancel-label" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md text-sm font-medium">Cancel</button>
+                <button id="confirm-label" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-sm font-medium">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Object Library Modal -->
+    <div id="object-library-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-medium text-white">Object Library</h3>
+                <button id="close-object-library" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <p class="mt-2 text-sm text-gray-400">Select an object to place on the canvas.</p>
+            <div class="mt-4 grid grid-cols-3 gap-4">
+                <!-- Stairs -->
+                <button class="object-btn flex flex-col items-center p-3 bg-gray-700 hover:bg-indigo-600 rounded-md transition-colors" data-object-type="stairs">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M4 14h16M4 9h16M4 4h16"/></svg>
+                    <span class="mt-2 text-xs">Stairs</span>
+                </button>
+                <!-- Road -->
+                <button class="object-btn flex flex-col items-center p-3 bg-gray-700 hover:bg-indigo-600 rounded-md transition-colors" data-object-type="road">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16"/><path d="M20 4v16"/><path d="M12 4v2.5"/><path d="M12 10.5v3"/><path d="M12 17.5v2.5"/></svg>
+                    <span class="mt-2 text-xs">Road</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>

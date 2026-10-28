@@ -1,0 +1,117 @@
+# Floor Plan Style Configuration
+# This YAML file defines the visual styles and settings for generating the floor plan.
+# It uses a palette for reusable colors and styles for lines and text.
+# References to palette colors use '@color_name' syntax.
+
+# Global settings for the floor plan
+settings:
+  background_color: '#FFFFFF'  # Background color of the entire plot (white)
+  units: 'feet'  # Units for measurements (feet, meters, etc.) - affects scaling
+  scale: '1/4'  # Scale as fraction (e.g., '1/4' means 1/4 inch per foot)
+  paper_size: '8.5x11'  # Paper size in inches (e.g., '8.5x11', '11x17', 'A4')
+  orientation: 'vertical'  # Page orientation: 'horizontal' (landscape) or 'vertical' (portrait)
+  title: 'Residential Floor Plan'  # Title for the plan
+  address: '123 Main Street'  # Address for title block
+  date: '2025-09-19'  # Date for title block
+  north_arrow: true  # Whether to include a north arrow
+
+# Color palette: Define reusable colors here
+# Use these in styles with '@palette_key' to keep colors consistent
+palette:
+  wall_black: '#404040'        # Medium gray for walls (professional look)
+  window_white: '#FFFFFF'      # White for window frames
+  window_black: '#000000'      # Black for window details
+  text_primary: '#000000'      # Primary text color (black)
+  text_secondary: '#606060'    # Secondary text color (gray)
+  fixture_gray: '#808080'      # Gray for fixtures like doors
+  annotation_gray: '#A0A0A0'   # Gray for annotations and dimensions
+  background_light: '#F8F8F8'  # Light gray for subtle backgrounds
+
+# Line styles: Define appearance for different line elements
+line_styles:
+  # Exterior walls (boundary of the floor plan)
+  exterior_wall:
+    thickness: 4.0           # Line width in points (scaled) - INCREASED
+    color: '@wall_black'     # Color reference from palette
+    fill: '@wall_black'      # Fill color (if applicable)
+    line_cap: 'square'       # End cap style ('butt', 'round', 'square')
+
+  # Interior walls (room boundaries)
+  interior_wall:
+    thickness: 3.0           # Line width in points (scaled) - INCREASED
+    color: '@wall_black'     # Color reference from palette
+    fill: '@wall_black'      # Fill color (if applicable)
+    line_cap: 'square'       # End cap style
+
+  # Door panels (lines representing doors)
+  door_panel:
+    thickness: 3.0           # Line width in points (scaled) - INCREASED for visibility
+    color: '@fixture_gray'   # Color reference from palette
+
+  # Window frames (rectangles around windows)
+  window_frame:
+    thickness: 3.0           # Thickness of the frame in points (scaled) - MATCHES WALLS
+    color: '@window_white'   # Color reference from palette - WHITE FILL
+    edge_color: '@window_black'  # Black border for windows
+    fill: '@window_white'    # Fill color (white)
+
+  # Window center lines (cross-lines inside windows)
+  window_center:
+    thickness: 0.8           # Line width in points (scaled) - THIN BLACK LINE
+    color: '@window_black'   # Color reference from palette
+
+# Text styles: Define appearance for text elements
+text_styles:
+  # Room labels (text inside rooms)
+  room_label:
+    font_family: 'DejaVu Sans'     # Font family
+    size: 12                 # Font size in points (scaled)
+    weight: 'bold'           # Font weight ('normal', 'bold')
+    color: '@text_primary'   # Color reference from palette
+    transform: 'none'        # Text transformation ('none', 'uppercase', etc.)
+    alignment: 'center'      # Text alignment ('left', 'center', 'right')
+
+  # Dimension labels (e.g., "32 ft" on boundaries)
+  dimensions_label:
+    font_family: 'DejaVu Sans'     # Font family
+    size: 8                  # Font size in points (scaled)
+    weight: 'normal'         # Font weight
+    color: '@text_secondary' # Color reference from palette
+    alignment: 'center'      # Text alignment
+
+  # Annotation labels (additional notes)
+  annotation_label:
+    font_family: 'DejaVu Sans'     # Font family
+    size: 6                  # Font size in points (scaled)
+    weight: 'normal'         # Font weight
+    color: '@annotation_gray'# Color reference from palette
+    transform: 'none'        # Text transformation
+    alignment: 'center'      # Text alignment
+
+  # Title block text
+  title_block:
+    font_family: 'DejaVu Sans'     # Font family
+    size: 14                 # Font size in points
+    weight: 'bold'           # Font weight
+    color: '@text_primary'   # Color reference from palette
+    alignment: 'left'        # Text alignment
+
+# Dimension settings: Control appearance of measurement annotations
+dimension_settings:
+  line_offset: 5             # Distance from room edge to dimension line (points)
+  tick_length: 3             # Length of dimension tick marks (points)
+  text_offset: 7             # Distance from dimension line to text (points)
+  font_size: 6               # Font size for dimension text (points)
+  line_color: '@text_primary' # Color of dimension lines
+  line_thickness: 0.5        # Thickness of dimension lines (points)
+  position: 'inside'         # Position of dimensions: 'inside' or 'outside' room
+
+# Window settings: Standard measurements for windows
+window_settings:
+  width: 4.0                 # Standard window width in feet
+  height: 3.0                # Standard window height in feet (for vertical windows)
+
+# Door settings: Standard measurements for doors
+door_settings:
+  width: 3.0                 # Standard door width in feet
+  height: 6.8                # Standard door height in feet
