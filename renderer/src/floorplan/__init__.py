@@ -1,6 +1,14 @@
 """Floor plan renderer: YAML/JSON plans to print-ready SVG/PDF/PNG."""
 
-__version__ = "2.0.0"
+from importlib.metadata import PackageNotFoundError, version
+
+# Single source of truth is the version in renderer/pyproject.toml.
+# (Not setuptools' `attr` dynamic version: that would import this
+# package at build time, and this module imports matplotlib.)
+try:
+    __version__ = version("floorplan-studio")
+except PackageNotFoundError:
+    __version__ = "0.0.0+dev"  # source-tree run, package not installed
 
 from floorplan.data_loader import load_plan
 from floorplan.drawing import draw_floor_plan

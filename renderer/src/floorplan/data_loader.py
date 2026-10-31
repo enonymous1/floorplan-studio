@@ -1,7 +1,10 @@
 """Load and validate plan files (YAML or JSON) into :class:`Plan` objects."""
 
+import datetime
 import json
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
@@ -183,7 +186,12 @@ def plan_from_dict(raw_data: Any) -> Plan:
     address = raw_data.get("address")
     date = raw_data.get("date")
     for key, value in (("title", title), ("address", address), ("date", date)):
-        if value is not None and not isinstance(value, (str, int, float)):
+        # A YAML author most plausibly writes an unquoted date, which
+        # parses as datetime.date — accept it (ISO-formatted below)
+        # instead of failing with a confusing type error.
+        if value is not None and not isinstance(
+            value, (str, int, float, datetime.date)
+        ):
             raise ValueError(f"'{key}' must be a string")
 
     return Plan(
@@ -194,16 +202,33 @@ def plan_from_dict(raw_data: Any) -> Plan:
         labels=_validate_labels(raw_data.get("labels", [])),
         dimensions=_validate_dimensions(raw_data.get("dimensions", [])),
         objects=_validate_objects(raw_data.get("objects", [])),
-        title=str(title) if title is not None else None,
-        address=str(address) if address is not None else None,
-        date=str(date) if date is not None else None,
+        title=_meta_str(title),
+        address=_meta_str(address),
+        date=_meta_str(date),
         version=1,
     )
+
+
+def _meta_str(value: Any) -> Optional[str]:
+    """Render plan metadata to a string; dates keep ISO format."""
+    if value is None:
+        return None
+    if isinstance(value, datetime.date):
+        return value.isoformat()
+    return str(value)
+
+
+_PLAN_SUFFIXES = (".yaml", ".yml", ".json")
 
 
 def load_plan(filepath: str | Path) -> Plan:
     """Load a plan from a YAML (``.yaml``/``.yml``) or JSON (``.json``) file."""
     path = Path(filepath)
+    if path.suffix.lower() not in _PLAN_SUFFIXES:
+        raise ValueError(
+            f"Unsupported plan file suffix {path.suffix!r} "
+            "(expected .yaml, .yml, or .json)"
+        )
     logger.info("Loading floor plan data from %s", path)
     try:
         text = path.read_text(encoding="utf-8")
@@ -230,10 +255,35 @@ def load_floor_plan(filepath: str) -> Tuple[List[Room], Optional[List]]:
 
 
 def dump_plan(plan: Plan, filepath: str | Path) -> None:
-    """Write a plan to YAML or JSON, chosen by the output suffix."""
+    """Write a plan to YAML or JSON, chosen by the output suffix.
+
+    Creates parent directories (like ``render`` does) and writes
+    atomically: the content goes to a temp file in the same
+    directory and is renamed over the target, so a failed convert
+    never leaves a truncated file over the user's data.
+    """
     path = Path(filepath)
+    if path.suffix.lower() not in _PLAN_SUFFIXES:
+        raise ValueError(
+            f"Unsupported plan file suffix {path.suffix!r} "
+            "(expected .yaml, .yml, or .json)"
+        )
     data = plan.to_dict()
     if path.suffix.lower() == ".json":
-        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        text = json.dumps(data, indent=2) + "\n"
     else:
-        path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
+        text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(
+        dir=path.parent, prefix=path.name + ".", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.replace(tmp_name, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise

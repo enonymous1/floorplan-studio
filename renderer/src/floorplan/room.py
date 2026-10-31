@@ -7,6 +7,13 @@ with (x, y) at the bottom-left corner.
 import matplotlib.patches as patches
 from typing import Dict, List, Optional, Tuple
 
+# Feet. Must match TOLERANCE_FT in editor/modules/plan.js: a segment
+# the editor attaches to a room edge must also match here, or the
+# renderer silently draws it without a wall gap (and a window it
+# attaches may be skipped as "not exterior"). The old code compared
+# gaps in scaled units against 1e-6, i.e. ~4e-8 ft at 1/4" scale.
+WALL_TOLERANCE_FT = 0.01
+
 
 def _is_number(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
@@ -16,7 +23,7 @@ def get_window_wall_info(
     room_rect: List[float],
     window_pos: Tuple[Tuple[float, float], Tuple[float, float]],
     boundary: Optional[List[List[float]]] = None,
-    tol: float = 1e-6,
+    tol: float = WALL_TOLERANCE_FT,
 ) -> Optional[str]:
     """
     Determine which wall a window is on.
@@ -110,6 +117,16 @@ class Room:
         offset_y: float,
         boundary: Optional[List[List[float]]] = None,
     ):
+        """Draw this room: fill, walls with door gaps, label,
+        dimensions, doors with swing arcs, and exterior windows.
+
+        ``scale_factor`` converts feet to page points and
+        ``offset_x``/``offset_y`` centre the plan on the page; both
+        must be the same values used for every other room, or door
+        gaps drift off their walls (a previous bug hardcoded 25.0/0
+        here). ``boundary`` is used only to decide whether a window
+        is exterior; with no boundary every room wall counts.
+        """
         x, y, w, h = self.rect
         scaled_x = x * scale_factor + offset_x
         scaled_y = y * scale_factor + offset_y
@@ -160,27 +177,38 @@ class Room:
                      "is_vertical": abs(sx1 - sx2) < 1e-6}
                 )
 
+        # Matching tolerance in scaled units: WALL_TOLERANCE_FT feet
+        # times the feet-to-points scale (see the constant's comment).
+        tol = WALL_TOLERANCE_FT * scale_factor
         self._draw_wall_segment(ax, style, scaled_x, scaled_y + scaled_h,
-                                scaled_x + scaled_w, scaled_y + scaled_h, door_gaps, "top")
+                                scaled_x + scaled_w, scaled_y + scaled_h, door_gaps, "top", tol)
         self._draw_wall_segment(ax, style, scaled_x, scaled_y,
-                                scaled_x + scaled_w, scaled_y, door_gaps, "bottom")
+                                scaled_x + scaled_w, scaled_y, door_gaps, "bottom", tol)
         self._draw_wall_segment(ax, style, scaled_x, scaled_y,
-                                scaled_x, scaled_y + scaled_h, door_gaps, "left")
+                                scaled_x, scaled_y + scaled_h, door_gaps, "left", tol)
         self._draw_wall_segment(ax, style, scaled_x + scaled_w, scaled_y,
-                                scaled_x + scaled_w, scaled_y + scaled_h, door_gaps, "right")
+                                scaled_x + scaled_w, scaled_y + scaled_h, door_gaps, "right", tol)
 
-    def _draw_wall_segment(self, ax, style, x1, y1, x2, y2, door_gaps, wall_side):
+    def _draw_wall_segment(self, ax, style, x1, y1, x2, y2, door_gaps, wall_side, tol):
+        """Draw one wall side, split around any door gaps on it.
+
+        Door gaps arrive in scaled (point) coordinates; ``tol`` is
+        the matching tolerance in the same units. Gaps are clipped
+        to the wall implicitly: a gap extending past a wall end
+        simply leaves no trailing segment, which is the correct
+        rendering for a door drawn past a corner.
+        """
         room_style = style["line_styles"]["interior_wall"]
         relevant_gaps = []
         if wall_side in ["top", "bottom"]:
             wall_y = y1
             for gap in door_gaps:
-                if not gap["is_vertical"] and abs(gap["y1"] - wall_y) < 1e-6:
+                if not gap["is_vertical"] and abs(gap["y1"] - wall_y) < tol:
                     relevant_gaps.append((min(gap["x1"], gap["x2"]), max(gap["x1"], gap["x2"])))
         else:
             wall_x = x1
             for gap in door_gaps:
-                if gap["is_vertical"] and abs(gap["x1"] - wall_x) < 1e-6:
+                if gap["is_vertical"] and abs(gap["x1"] - wall_x) < tol:
                     relevant_gaps.append((min(gap["y1"], gap["y2"]), max(gap["y1"], gap["y2"])))
         relevant_gaps.sort()
 
@@ -264,6 +292,11 @@ class Room:
 
     def _draw_doors(self, ax, style, scale_factor, offset_x, offset_y):
         wall_thickness = style["line_styles"]["interior_wall"]["thickness"]
+        # Same shared tolerance as the wall gaps, in scaled units.
+        # Wall detection here used exact float equality, which only
+        # held because both sides were computed by identical
+        # arithmetic on identical inputs.
+        tol = WALL_TOLERANCE_FT * scale_factor
 
         for door in self.doors:
             pos = door.get("pos")
@@ -279,7 +312,7 @@ class Room:
             door_thickness = wall_thickness * 0.3
 
             if abs(sx1 - sx2) < 1e-6:  # Vertical door
-                is_left_wall = sx1 == self.rect[0] * scale_factor + offset_x
+                is_left_wall = abs(sx1 - (self.rect[0] * scale_factor + offset_x)) < tol
                 if is_left_wall:
                     door_rect = patches.Rectangle(
                         (sx1, min(sy1, sy2)), door_thickness, door_width,
@@ -294,7 +327,7 @@ class Room:
                 center_y = min(sy1, sy2)
                 center_x = sx1
                 arc_radius = door_width
-                arc_angle = 54
+                arc_angle = 54  # stylised swing arc, deliberately less than a full 90-degree swing
                 if is_left_wall:
                     theta = (0, arc_angle) if swing_in else (180 - arc_angle, 180)
                 else:
@@ -303,7 +336,7 @@ class Room:
                                          angle=0, theta1=theta[0], theta2=theta[1],
                                          color="black", linewidth=2.0))
             elif abs(sy1 - sy2) < 1e-6:  # Horizontal door
-                is_bottom_wall = sy1 == self.rect[1] * scale_factor + offset_y
+                is_bottom_wall = abs(sy1 - (self.rect[1] * scale_factor + offset_y)) < tol
                 if is_bottom_wall:
                     door_rect = patches.Rectangle(
                         (min(sx1, sx2), sy1), door_width, door_thickness,
@@ -318,7 +351,7 @@ class Room:
                 center_x = min(sx1, sx2)
                 center_y = sy1
                 arc_radius = door_width
-                arc_angle = 54
+                arc_angle = 54  # stylised swing arc, deliberately less than a full 90-degree swing
                 if is_bottom_wall:
                     theta = (90, 90 + arc_angle) if swing_in else (270 - arc_angle, 270)
                 else:

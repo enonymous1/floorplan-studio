@@ -52,3 +52,45 @@ jobs:
         run: |
           npm run build:css
           git diff --exit-code dist/styles.css
+
+  # The two halves share only the plan format, so CI must run them
+  # together: the editor's export has to validate against the schema
+  # and render in Python, and the "JSON twin" example must still be
+  # exactly what the YAML converts to.
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Versions agree (pyproject vs package.json)
+        run: |
+          python - <<'EOF'
+          import json, re
+          from pathlib import Path
+          py = Path("renderer/pyproject.toml").read_text(encoding="utf-8")
+          py_version = re.search(r'^version = "([^"]+)"', py, re.M).group(1)
+          js_version = json.loads(Path("editor/package.json").read_text(encoding="utf-8"))["version"]
+          assert py_version == js_version, f"pyproject {py_version} != package.json {js_version}"
+          print(f"versions agree: {py_version}")
+          EOF
+      - name: Validate examples against the plan schema
+        run: |
+          pip install jsonschema pyyaml
+          python scripts/check-schema.py examples/floor_plan.yaml examples/floor_plan.json
+      - name: Editor export renders in Python
+        run: |
+          cd editor && npm ci && node scripts/export-golden.mjs golden-plan.json
+          cd ..
+          pip install -e renderer
+          python scripts/check-schema.py editor/golden-plan.json
+          floorplan render editor/golden-plan.json --output-dir /tmp/contract-out
+          test -f /tmp/contract-out/floor_plan.svg
+      - name: Example JSON is the YAML, converted
+        run: |
+          floorplan convert examples/floor_plan.yaml /tmp/check.json
+          diff /tmp/check.json examples/floor_plan.json

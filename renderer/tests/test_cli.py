@@ -19,6 +19,19 @@ def test_cli_render_and_convert(tmp_path, example_files):
     assert main(["render", str(tmp_path / "missing.yaml")]) == 1
 
 
+def test_cli_bad_style_exits_1_without_traceback(tmp_path, example_files, capsys):
+    import yaml
+
+    plan_path, _ = example_files
+    style_path = tmp_path / "bad-style.yaml"
+    style_path.write_text(yaml.safe_dump({"settings": {}}), encoding="utf-8")
+    assert main(["render", str(plan_path), "--style", str(style_path),
+                 "--output-dir", str(tmp_path / "out")]) == 1
+    captured = capsys.readouterr()
+    assert "floorplan: error:" in captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_cli_entry_point_from_fresh_cwd(tmp_path, example_files):
     # Exercise the installed console script path via `python -m floorplan`.
     plan_path, _ = example_files

@@ -13,15 +13,22 @@ export function drawGrid() {
     // translated by state.panOffset and scaled by state.scale in `draw()` so
     // we compute world-space bounds and iterate by unscaled grid size.
     // Slightly stronger grid so it's visible on large canvases
+    //
+    // NOTE: use the real scale here, not Math.max(1, scale). The old
+    // clamp made the bounds math wrong below 100% zoom (the wheel
+    // handler allows 10%), so grid lines stopped short of the
+    // viewport edges when zoomed out. state.scale is always > 0
+    // (the wheel handler clamps it to [0.1, 5]).
+    const s = state.scale || 1;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
     // Keep a consistent hairline by compensating for canvas scale
-    ctx.lineWidth = 1 / Math.max(1, state.scale);
+    ctx.lineWidth = 1 / s;
     const gridSize = state.gridSize; // grid spacing in world pixels
 
-    const canvasWidthWorld = ctx.canvas.width / Math.max(1, state.scale);
-    const canvasHeightWorld = ctx.canvas.height / Math.max(1, state.scale);
-    const worldLeft = -state.panOffsetX / Math.max(1, state.scale);
-    const worldTop = -state.panOffsetY / Math.max(1, state.scale);
+    const canvasWidthWorld = ctx.canvas.width / s;
+    const canvasHeightWorld = ctx.canvas.height / s;
+    const worldLeft = -state.panOffsetX / s;
+    const worldTop = -state.panOffsetY / s;
 
     // Extend one extra grid step before/after to avoid edge clipping
     const startGridX = Math.floor((worldLeft - gridSize) / gridSize) * gridSize;

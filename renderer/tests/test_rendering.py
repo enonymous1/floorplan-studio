@@ -11,11 +11,21 @@ from floorplan.room import Room, get_window_wall_info
 from floorplan.style_loader import load_style
 
 def test_parse_helpers():
+    import pytest
+
     assert parse_scale("1/4") == 0.25
-    assert parse_scale("bogus") == 0.25
+    assert parse_scale(" 1/4 ") == 0.25
+    assert parse_scale("0.25") == 0.25
+    assert parse_scale(0.5) == 0.5
+    # Unknown scales fail loudly now instead of silently rendering
+    # at 1/4" — a typo must not produce a wrong-size page.
+    with pytest.raises(ValueError, match="Unknown scale"):
+        parse_scale("bogus")
     assert parse_paper_size("8.5x11") == (8.5, 11)
     assert parse_paper_size("a4", "horizontal") == (11.69, 8.27)
-    assert parse_paper_size("bogus") == (8.5, 11)
+    assert parse_paper_size("8.5 x 11") == (8.5, 11)
+    with pytest.raises(ValueError, match="Unknown paper size"):
+        parse_paper_size("bogus")
 
 
 def test_window_wall_info():
@@ -112,3 +122,57 @@ def test_render_empty_plan(tmp_path, example_files):
     style = load_style(style_path)
     written = draw_floor_plan(plan, style, output_dir=str(tmp_path / "out"))
     assert written[0].exists()
+
+
+def test_wall_gap_tolerance_matches_editor(tmp_path, example_files):
+    # Regression for the tolerance mismatch: the editor attaches a
+    # door within 0.01 ft of a wall edge, so a door 0.005 ft off the
+    # bottom edge must still split that wall into two segments.
+    import matplotlib.pyplot as plt
+
+    from floorplan.room import WALL_TOLERANCE_FT
+
+    assert WALL_TOLERANCE_FT == 0.01
+    room = Room("R", [0, 0, 20, 15])
+    style = {"line_styles": {"interior_wall": {"color": "black", "thickness": 1.0}}}
+    fig, ax = plt.subplots()
+    scale_factor = 25
+    tol = WALL_TOLERANCE_FT * scale_factor
+    gaps = [{"x1": 250, "y1": -0.125, "x2": 325, "y2": -0.125, "is_vertical": False}]
+    room._draw_wall_segment(ax, style, 0, 0, 500, 0, gaps, "bottom", tol)
+    assert len(ax.lines) == 2  # 0–250 and 325–500, with the gap between
+    plt.close(fig)
+
+
+def test_window_wall_tolerance_matches_editor():
+    # A window 0.005 ft off the exterior boundary still counts as
+    # exterior, matching the editor's 0.01 ft attachment tolerance.
+    boundary = [[0, 0], [32, 0], [32, 27], [0, 27]]
+    top_room = [0, 15, 15, 12]
+    assert get_window_wall_info(top_room, ((2, 27.005), (8, 27.005)), boundary) == "top"
+
+
+def test_no_extras_writes_only_main_page(tmp_path, example_files):
+    plan_path, style_path = example_files
+    plan = load_plan(plan_path)
+    style = load_style(style_path)
+    out_dir = tmp_path / "out"
+    written = draw_floor_plan(plan, style, output_dir=str(out_dir), extras=False)
+    assert written == [out_dir / "floor_plan.svg"]
+    assert not (out_dir / "floor_plan_settings.svg").exists()
+
+
+def test_oversize_plan_warns(caplog, tmp_path, example_files):
+    import logging
+
+    _, style_path = example_files
+    plan_path = tmp_path / "huge.json"
+    plan_path.write_text(json.dumps({
+        "version": 1,
+        "rooms": [{"name": "Big", "rect": [0, 0, 500, 500], "doors": [], "windows": []}],
+    }), encoding="utf-8")
+    plan = load_plan(plan_path)
+    style = load_style(style_path)
+    with caplog.at_level(logging.WARNING, logger="floorplan.drawing"):
+        draw_floor_plan(plan, style, output_dir=str(tmp_path / "out"))
+    assert "clipped, not fitted" in caplog.text

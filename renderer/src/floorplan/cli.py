@@ -1,6 +1,7 @@
 """Command line: render plans and convert between YAML and JSON."""
 
 import argparse
+import logging
 import sys
 from importlib import resources
 from pathlib import Path
@@ -43,6 +44,10 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Render floor plans (YAML/JSON) to print-ready pages.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "--verbose", action="store_true",
+        help="Enable info logging (plan/style loading, fit warnings).",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     render = sub.add_parser("render", help="Render a plan file to SVG/PNG/PDF.")
@@ -62,6 +67,11 @@ def _build_parser() -> argparse.ArgumentParser:
     render.add_argument("--title", default=None, help="Override the page title.")
     render.add_argument("--address", default=None, help="Override the title-block address.")
     render.add_argument("--date", default=None, help="Override the title-block date.")
+    render.add_argument(
+        "--no-extras", action="store_true",
+        help="Write only floor_plan.<format>; skip the settings and "
+        "page-section diagrams.",
+    )
 
     convert = sub.add_parser(
         "convert", help="Convert a plan between YAML and JSON (chosen by suffix).")
@@ -72,12 +82,19 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv=None) -> int:
     args = _build_parser().parse_args(argv)
+    logging.basicConfig(
+        level=logging.INFO if args.verbose else logging.WARNING,
+        format="floorplan: %(levelname)s: %(message)s",
+    )
     try:
         if args.command == "render":
             plan = load_plan(args.plan)
             style = load_style(args.style) if args.style else load_style(_default_style_path())
             style = _apply_metadata(plan, style, args.title, args.address, args.date)
-            written = draw_floor_plan(plan, style, output_dir=args.output_dir, fmt=args.format)
+            written = draw_floor_plan(
+                plan, style, output_dir=args.output_dir, fmt=args.format,
+                extras=not args.no_extras,
+            )
             for path in written:
                 print(path)
             return 0
@@ -86,7 +103,11 @@ def main(argv=None) -> int:
             dump_plan(plan, args.output)
             print(args.output)
             return 0
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, KeyError) as exc:
+        # KeyError is belt-and-braces: load_style validates the
+        # sections up front, but a style that passes validation can
+        # still miss a nested key a draw method reads. Either way
+        # the user gets one clean line, not a traceback.
         print(f"floorplan: error: {exc}", file=sys.stderr)
         return 1
     return 0

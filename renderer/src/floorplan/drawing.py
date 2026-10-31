@@ -21,18 +21,50 @@ logger = logging.getLogger(__name__)
 TITLE_MARGIN_TOP = 50  # points
 BOTTOM_MARGIN = 50  # points
 
+# Page-coordinate units. The figure is sized so that one coordinate
+# unit equals one PostScript point: the figure width in inches is
+# paper_width * UNITS_PER_INCH / POINTS_PER_INCH while the axes span
+# the full figure and the x-limits span paper_width * UNITS_PER_INCH
+# units. Do not "simplify" these into a single 100 — the invariant
+# above is what makes font sizes (real points) line up with geometry.
+UNITS_PER_INCH = 100
+POINTS_PER_INCH = 72
+
 
 def parse_scale(scale_str):
-    """Parse a scale like '1/4' to inches per foot."""
+    """Parse a scale like '1/4' to inches per foot.
+
+    Accepts the named fractions below, a plain number (``"0.25"``,
+    or a numeric value from YAML. Anything else raises ValueError:
+    a typo'd scale must not silently render at 1/4" unnoticed.
+    """
     common_scales = {"1/8": 0.125, "1/4": 0.25, "1/2": 0.5, "1": 1.0, "2": 2.0}
-    if scale_str in common_scales:
-        return common_scales[scale_str]
-    logger.warning("Invalid scale %r; using default '1/4'.", scale_str)
-    return 0.25
+    if isinstance(scale_str, (int, float)) and not isinstance(scale_str, bool):
+        if scale_str > 0:
+            return float(scale_str)
+    elif isinstance(scale_str, str):
+        key = scale_str.strip()
+        if key in common_scales:
+            return common_scales[key]
+        try:
+            value = float(key)
+        except ValueError:
+            value = None
+        if value is not None and value > 0:
+            return value
+    raise ValueError(
+        f"Unknown scale {scale_str!r} "
+        f"(expected one of {sorted(common_scales)} or a positive number)"
+    )
 
 
 def parse_paper_size(size_str, orientation="vertical"):
-    """Parse a paper size like '8.5x11' to (width, height) in inches."""
+    """Parse a paper size like '8.5x11' to (width, height) in inches.
+
+    Matching is case- and whitespace-insensitive (``"A4"``,
+    ``"8.5 x 11"``). Unknown sizes raise ValueError instead of
+    silently falling back to letter.
+    """
     common_sizes = {
         "8.5x11": (8.5, 11),
         "11x17": (11, 17),
@@ -41,16 +73,26 @@ def parse_paper_size(size_str, orientation="vertical"):
         "letter": (8.5, 11),
         "tabloid": (11, 17),
     }
-    if isinstance(size_str, str) and size_str.lower() in common_sizes:
-        w, h = common_sizes[size_str.lower()]
-        if orientation == "horizontal":
-            w, h = h, w
-        return (w, h)
-    logger.warning("Invalid paper size %r; using default '8.5x11'.", size_str)
-    w, h = 8.5, 11
-    if orientation == "horizontal":
-        w, h = h, w
-    return (w, h)
+    if isinstance(size_str, str):
+        key = size_str.strip().lower().replace(" ", "")
+        if key in common_sizes:
+            w, h = common_sizes[key]
+            if orientation == "horizontal":
+                w, h = h, w
+            return (w, h)
+    raise ValueError(
+        f"Unknown paper size {size_str!r} "
+        f"(expected one of {sorted(common_sizes)})"
+    )
+
+
+def _is_axis_aligned_rectangle(boundary):
+    """True when 4 points form an axis-aligned rectangle, any order."""
+    if len(boundary) != 4:
+        return False
+    xs = {p[0] for p in boundary}
+    ys = {p[1] for p in boundary}
+    return len(xs) == 2 and len(ys) == 2
 
 
 def draw_boundary(ax, boundary, style, scale_factor, offset_x=0, offset_y=0):
@@ -63,14 +105,23 @@ def draw_boundary(ax, boundary, style, scale_factor, offset_x=0, offset_y=0):
     ax.add_patch(patches.Polygon(
         scaled_boundary, closed=True,
         linewidth=wall_style["thickness"], edgecolor=wall_style["color"], facecolor="none"))
-    if len(boundary) == 4:
-        (x0, y0), (x1, _y1), _p2, (x3, y3) = boundary
+    if _is_axis_aligned_rectangle(boundary):
+        # Bounding-box labels, order-independent. A 4-point
+        # trapezoid used to get wrong labels here (the old code
+        # assumed BL, BR, TR, TL order); non-rectangles get no
+        # dimension labels rather than wrong ones.
+        xs = [p[0] for p in boundary]
+        ys = [p[1] for p in boundary]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
         units = style["settings"].get("units", "ft")
-        ax.text((x0 + x1) / 2 * scale_factor + offset_x, y0 * scale_factor + offset_y - 10,
-                f"{abs(x1 - x0)} {units}", ha="center", va="bottom",
+        ax.text((min_x + max_x) / 2 * scale_factor + offset_x,
+                min_y * scale_factor + offset_y - 10,
+                f"{max_x - min_x} {units}", ha="center", va="bottom",
                 fontsize=10, color=wall_style["color"])
-        ax.text(x0 * scale_factor + offset_x - 10, (y0 + y3) / 2 * scale_factor + offset_y,
-                f"{abs(y0 - y3)} {units}", ha="right", va="center",
+        ax.text(min_x * scale_factor + offset_x - 10,
+                (min_y + max_y) / 2 * scale_factor + offset_y,
+                f"{max_y - min_y} {units}", ha="right", va="center",
                 fontsize=10, color=wall_style["color"], rotation=90)
 
 
@@ -205,20 +256,24 @@ def _plan_bounds(plan):
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def draw_floor_plan(plan, style, output_dir="output", fmt="svg"):
+def draw_floor_plan(plan, style, output_dir="output", fmt="svg", extras=True):
     """Render ``plan`` with ``style`` into ``output_dir``.
 
-    Writes ``floor_plan.<fmt>`` plus settings and page-section
-    diagrams. The output directory is created when missing (the
-    original crashed on a fresh checkout because it never was).
-    Returns the list of files written.
+    Writes ``floor_plan.<fmt>`` plus, unless ``extras`` is False,
+    settings and page-section diagrams. The output directory is
+    created when missing (the original crashed on a fresh
+    checkout because it never was). Returns the list of files
+    written. A plan larger than the drawable area is centred
+    and clipped, not fitted — a warning is logged (visible
+    with the CLI's ``--verbose`` flag) instead of silently
+    losing geometry off the page.
     """
     settings = style["settings"]
-    scale_factor = parse_scale(settings.get("scale", "1/4")) * 100
+    scale_factor = parse_scale(settings.get("scale", "1/4")) * UNITS_PER_INCH
     orientation = settings.get("orientation", "vertical")
     paper_width, paper_height = parse_paper_size(settings.get("paper_size", "8.5x11"), orientation)
-    page_width_points = paper_width * 100
-    page_height_points = paper_height * 100
+    page_width_points = paper_width * UNITS_PER_INCH
+    page_height_points = paper_height * UNITS_PER_INCH
 
     min_x, min_y, max_x, max_y = _plan_bounds(plan)
     plan_center_x = (min_x + max_x) / 2 * scale_factor
@@ -228,15 +283,32 @@ def draw_floor_plan(plan, style, output_dir="output", fmt="svg"):
     offset_x = middle_center_x - plan_center_x
     offset_y = middle_center_y - plan_center_y
 
+    plan_width_points = (max_x - min_x) * scale_factor
+    plan_height_points = (max_y - min_y) * scale_factor
+    drawable_height = page_height_points - TITLE_MARGIN_TOP - BOTTOM_MARGIN
+    if plan_width_points > page_width_points or plan_height_points > drawable_height:
+        logger.warning(
+            "Plan is %.1f x %.1f points but the drawable area is "
+            "%.1f x %.1f points; it will be clipped, not fitted "
+            "to the page.",
+            plan_width_points, plan_height_points,
+            page_width_points, drawable_height,
+        )
+
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    fig, ax = plt.subplots(figsize=(paper_width * 100 / 72, paper_height * 100 / 72))
+    fig, ax = plt.subplots(
+        figsize=(paper_width * UNITS_PER_INCH / POINTS_PER_INCH,
+                 paper_height * UNITS_PER_INCH / POINTS_PER_INCH))
     ax.set_position([0, 0, 1, 1])
     fig.patch.set_facecolor(settings["background_color"])
     ax.add_patch(patches.Rectangle(
         (0, 0), page_width_points, page_height_points,
         facecolor=settings["background_color"], zorder=-1))
+    # Deliberate page-anatomy aid, not debug leftovers: faint tints
+    # marking the title, plan, title-block, and page-number regions
+    # of the page (see the page-section diagram for the key).
     highlight_alpha = 0.1
     ax.add_patch(patches.Rectangle(
         (0, page_height_points - TITLE_MARGIN_TOP), page_width_points, TITLE_MARGIN_TOP,
@@ -283,17 +355,21 @@ def draw_floor_plan(plan, style, output_dir="output", fmt="svg"):
     plt.savefig(main_path, format=fmt)
     plt.close(fig)
 
+    if not extras:
+        return [main_path]
     settings_path = _draw_settings_page(style, paper_width, paper_height, out_dir, fmt)
     sections_path = _draw_page_sections(style, paper_width, paper_height, out_dir, fmt)
     return [main_path, settings_path, sections_path]
 
 
 def _draw_settings_page(style, paper_width, paper_height, out_dir, fmt):
-    fig, ax = plt.subplots(figsize=(paper_width * 100 / 72, paper_height * 100 / 72))
+    fig, ax = plt.subplots(
+        figsize=(paper_width * UNITS_PER_INCH / POINTS_PER_INCH,
+                 paper_height * UNITS_PER_INCH / POINTS_PER_INCH))
     ax.set_position([0, 0, 1, 1])
     fig.patch.set_facecolor("#FFFFFF")
-    ax.set_xlim(0, paper_width * 100)
-    ax.set_ylim(0, paper_height * 100)
+    ax.set_xlim(0, paper_width * UNITS_PER_INCH)
+    ax.set_ylim(0, paper_height * UNITS_PER_INCH)
     ax.axis("off")
     settings = style["settings"]
     text = (
@@ -307,7 +383,7 @@ def _draw_settings_page(style, paper_width, paper_height, out_dir, fmt):
         f"North Arrow: {'Yes' if settings.get('north_arrow', False) else 'No'}\n\n"
         f"Generated on: {settings.get('date', 'N/A')}"
     )
-    ax.text(50, paper_height * 100 - 100, text, ha="left", va="top",
+    ax.text(50, paper_height * UNITS_PER_INCH - 100, text, ha="left", va="top",
             fontsize=12, family="DejaVu Sans")
     path = out_dir / f"floor_plan_settings.{fmt}"
     plt.savefig(path, format=fmt)
@@ -316,14 +392,16 @@ def _draw_settings_page(style, paper_width, paper_height, out_dir, fmt):
 
 
 def _draw_page_sections(style, paper_width, paper_height, out_dir, fmt):
-    fig, ax = plt.subplots(figsize=(paper_width * 100 / 72, paper_height * 100 / 72))
+    fig, ax = plt.subplots(
+        figsize=(paper_width * UNITS_PER_INCH / POINTS_PER_INCH,
+                 paper_height * UNITS_PER_INCH / POINTS_PER_INCH))
     ax.set_position([0, 0, 1, 1])
     fig.patch.set_facecolor("#FFFFFF")
-    ax.set_xlim(0, paper_width * 100)
-    ax.set_ylim(0, paper_height * 100)
+    ax.set_xlim(0, paper_width * UNITS_PER_INCH)
+    ax.set_ylim(0, paper_height * UNITS_PER_INCH)
     ax.axis("off")
-    page_width_points = paper_width * 100
-    page_height_points = paper_height * 100
+    page_width_points = paper_width * UNITS_PER_INCH
+    page_height_points = paper_height * UNITS_PER_INCH
     ax.add_patch(patches.Rectangle(
         (0, page_height_points - TITLE_MARGIN_TOP), page_width_points, TITLE_MARGIN_TOP,
         linewidth=2, edgecolor="blue", facecolor="lightblue", alpha=1.0))

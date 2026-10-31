@@ -1,4 +1,9 @@
 // State management as a single mutable object
+import { PIXELS_PER_FOOT } from './plan.js';
+
+// gridSize and pixelsPerFoot are the same quantity: plan.js owns the
+// constant (20 px/ft) so the canvas, the conversion, and the footer
+// scale label cannot drift apart.
 export const state = {
     showAllDimensions: false,
     currentTool: 'wall',
@@ -13,8 +18,8 @@ export const state = {
     panOffsetX: 0,
     panOffsetY: 0,
     scale: 1,
-    gridSize: 20, // Represents 1 foot
-    pixelsPerFoot: 20,
+    gridSize: PIXELS_PER_FOOT, // Represents 1 foot
+    pixelsPerFoot: PIXELS_PER_FOOT,
     isResizing: false,
     resizingHandle: null, // 'start' or 'end' or corner for rects
     handleSize: 8, // pixels

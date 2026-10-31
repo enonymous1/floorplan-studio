@@ -18,20 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     state.initCanvas(canvasElement, containerElement);
     setDrawingContext(state.ctx);
 
-    // Compatibility shim: expose a few globals so older/cached modules that expect
-    // top-level variables (gridSize, scale, handleSize, pixelsPerFoot) won't crash.
-    function syncGlobals() {
-        try {
-            window.gridSize = state.gridSize;
-            window.scale = state.scale;
-            window.handleSize = state.handleSize;
-            window.pixelsPerFoot = state.pixelsPerFoot;
-            window.state = state; // helpful for manual debugging in console
-        } catch (e) {
-            // noop
-        }
-    }
-    syncGlobals();
+    // Console debugging aid only. No module reads window globals:
+    // drawing.js and utils.js import `state` directly, so the old
+    // syncGlobals shim (window.gridSize/scale/handleSize/...) was
+    // dead code and has been removed.
+    window.state = state;
 
     // --- Plan persistence (localStorage) and import/export ---
     // The autosaved value is a shared-format plan, the same shape the
@@ -45,8 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
             date: state.planMeta.date || undefined,
         });
     }
+    function noteAutosaveProblem(message) {
+        const el = document.getElementById('autosave-status');
+        if (el) el.textContent = message;
+    }
     function persistPlan() {
-        try { localStorage.setItem(AUTOSAVE_KEY, planToJson(currentPlan())); } catch (e) { /* storage unavailable */ }
+        try { localStorage.setItem(AUTOSAVE_KEY, planToJson(currentPlan())); }
+        catch (e) {
+            // Never alert() on the autosave path (it fires during
+            // ordinary editing); a footer note + console warning do.
+            console.warn('floorplan-studio: autosave failed:', e);
+            noteAutosaveProblem('Autosave unavailable — exports still work');
+        }
     }
     function restorePlan() {
         try {
@@ -59,7 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
             state.planMeta = meta;
             state.history = [JSON.parse(JSON.stringify(objects))];
             state.historyIndex = 0;
-        } catch (e) { /* corrupt or old save: start empty */ }
+        } catch (e) {
+            // Corrupt or old save: start empty, but say so instead
+            // of silently presenting an empty canvas.
+            console.warn('floorplan-studio: saved plan could not be restored:', e);
+            noteAutosaveProblem('Saved plan could not be restored — starting empty');
+        }
     }
     function downloadFile(filename, text, type) {
         const blob = new Blob([text], { type });
@@ -81,12 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
         state.canvas.height = state.container.clientHeight + buffer;
         state.panOffsetX = state.panOffsetX === 0 ? -buffer / 2 : state.panOffsetX;
         state.panOffsetY = state.panOffsetY === 0 ? -buffer / 2 : state.panOffsetY;
-        syncGlobals();
         draw();
     }
 
     restorePlan();
     resizeCanvas();
+    // Footer scale label from the single source (state), not a
+    // hardcoded string in index.html that could drift from it.
+    const scaleInfo = document.getElementById('scale-info');
+    if (scaleInfo) scaleInfo.textContent = `Scale: ${state.pixelsPerFoot}px = 1ft`;
     window.addEventListener('resize', resizeCanvas);
 
 // --- Event Handling ---
@@ -382,7 +391,6 @@ state.canvas.addEventListener('wheel', e => {
     state.panOffsetY -= mousePos.y * state.scale * (zoom - 1);
     state.scale = newScale;
     document.getElementById('zoom-level').textContent = `Zoom: ${Math.round(state.scale * 100)}%`;
-    syncGlobals();
     draw();
 });
 
@@ -577,10 +585,14 @@ objectLibraryModal.addEventListener('click', e => {
 // --- History (Undo/Redo) Logic ---
 const undoBtn = document.getElementById('undo-btn');
 const redoBtn = document.getElementById('redo-btn');
+// History is a full deep copy per action, so it must be bounded:
+// a long session otherwise grows memory linearly with no ceiling.
+const MAX_HISTORY = 100;
 function saveState() {
     state.history = state.history.slice(0, state.historyIndex + 1);
     state.history.push(JSON.parse(JSON.stringify(state.objects)));
-    state.historyIndex++;
+    if (state.history.length > MAX_HISTORY) state.history.shift();
+    state.historyIndex = state.history.length - 1;
     updateButtonStates();
     persistPlan();
 }
@@ -670,6 +682,15 @@ document.getElementById('import-btn').addEventListener('click', () => importFile
 importFileInput.addEventListener('change', () => {
     const file = importFileInput.files && importFileInput.files[0];
     if (!file) return;
+    if (/\.ya?ml$/i.test(file.name)) {
+        // The editor exports YAML but imports JSON only. Say so
+        // with a path forward instead of a dead-end parse error.
+        // (A real YAML import, e.g. via js-yaml, is follow-up work.)
+        alert('That file is YAML. Convert it first, then import the JSON:\n'
+            + 'floorplan convert plan.yaml plan.json');
+        importFileInput.value = '';
+        return;
+    }
     file.text().then((text) => {
         const { objects, boundary, meta } = planToEditorObjects(parsePlanJson(text));
         state.objects = objects;

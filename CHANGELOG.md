@@ -1,5 +1,69 @@
 # Changelog
 
+## 2.1.0 — 2026-10-31
+
+Staff-review fixes, on top of the 2.0.0 merge. Nothing here
+changes the plan format, the `floorplan` command, or the
+editor's object model.
+
+- **Style errors are clean CLI errors now.** `load_style`
+  wraps YAML parse errors and rejects styles missing the
+  `settings`/`line_styles`/`text_styles` sections (or a
+  `background_color`) with a `ValueError` naming the file,
+  and the CLI also catches `KeyError`, so a custom `--style`
+  file can no longer produce a traceback.
+- **Shared wall tolerance.** `room.py` gains
+  `WALL_TOLERANCE_FT = 0.01`, matching
+  `editor/modules/plan.js`: door-gap matching and door-wall
+  detection (previously exact float equality) use it, and
+  `get_window_wall_info` defaults to it. A door the editor
+  attaches within 0.01 ft of a wall now actually splits that
+  wall in the render.
+- **Editor:** undo history is capped at 100 entries;
+  autosave/restore failures warn on the console and show a
+  footer note instead of failing silently; importing a YAML
+  file gives an actionable error pointing at
+  `floorplan convert` (import remains JSON-only);
+  `state.js` imports `PIXELS_PER_FOOT` from `plan.js` and
+  the footer scale label is rendered from it; the dead
+  `syncGlobals` shim is removed; `drawGrid` uses the real
+  scale below 100% zoom instead of clamping it to 1.
+- **Renderer hardening.** `load_plan`/`dump_plan` reject
+  unknown suffixes; `dump_plan` creates parent directories
+  and writes atomically (temp file + rename); unquoted YAML
+  dates are accepted as metadata; `parse_scale` accepts
+  whitespace and plain numbers and `parse_paper_size`
+  accepts whitespace/case variants, and both raise on
+  unknown input instead of silently falling back; boundary
+  dimension labels are computed from the bounding box and
+  only for axis-aligned rectangles; oversize plans log a
+  clipping warning (visible with `--verbose`); `render`
+  gains `--no-extras` to skip the settings/page-section
+  pages; scaling uses named `UNITS_PER_INCH` /
+  `POINTS_PER_INCH` constants with the 1-unit = 1-point
+  invariant documented.
+- **Version, single-sourced.** `floorplan.__version__` is
+  read from installed metadata (`pyproject.toml` is the
+  source); a CI step fails when `pyproject.toml` and
+  `editor/package.json` versions differ.
+- **Plan contract.** New `schema/plan-v1.json` (JSON Schema
+  for the format) plus `scripts/check-schema.py`, a CI
+  `contract` job that validates the examples against it,
+  renders an editor export produced by
+  `editor/scripts/export-golden.mjs` in Python, and diffs
+  the example JSON twin against a fresh YAML conversion.
+- **Docs.** README rewritten (Description, Prerequisites,
+  Installation, Local Development, Deployment, plus Usage,
+  Plan format, Architecture, Known limits, Contributing);
+  new `docs/assets/architecture.svg`; Dependabot enabled
+  for pip, npm, and GitHub Actions.
+- **Deferred, deliberately:** the editor modularization
+  (`script.js` split, explicit `utils.js` parameters), the
+  renderer scene-graph split, the door-arc/label/dimension
+  dedup refactors, and mypy/ESLint enforcement. They are
+  geometry- or structure-sensitive and belong in their own
+  changes on top of the contract job above.
+
 ## 2.0.0 — 2026-10-28
 
 Merged `ss-floorplan` (Python renderer) and `ss-floor_plan_creator` (browser editor) into one repo, `floorplan-studio`, under a shared plan format (version 1). Both stacks are kept; neither was rewritten in the other's language. Squashed export: the earlier single-commit histories are intentionally not included.

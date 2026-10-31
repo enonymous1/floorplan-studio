@@ -18,7 +18,9 @@ Two halves, one plan format. Do not rewrite one half in the other's language.
 
 ## Patterns and gotchas
 
-- Renderer style: `@key` palette references resolve recursively in `style_loader.py`; unknown keys raise. Do not reintroduce the old one-level resolver.
+- Renderer style: `@key` palette references resolve recursively in `style_loader.py`; unknown keys raise. Do not reintroduce the old one-level resolver. A style must contain `settings`/`line_styles`/`text_styles` (validated in `load_style`); the CLI reports style errors on stderr and exits 1, never with a traceback.
+- Wall tolerance is shared: `room.py: WALL_TOLERANCE_FT = 0.01` must match `plan.js: TOLERANCE_FT`. Do not compare gaps in scaled units against a bare epsilon.
+- Plan format contract: `schema/plan-v1.json` owns shape/required keys/types; semantic rules (axis-alignment, positive sizes) stay in the validators. The CI `contract` job validates the examples, renders an editor golden export in Python, and diffs the example JSON twin against a fresh conversion — keep all three green.
 - `drawing.py` must keep exactly one definition of each helper. The north arrow is placed from page size, not from plan offsets. Door gaps in `room.py` must use the passed `scale_factor`/`offset_x`/`offset_y` (a hardcoded 25.0/0 was a real bug).
 - Windows draw only on exterior walls (`room.get_window_wall_info`); with no boundary every room wall counts as exterior. Interior windows are skipped by design.
 - `draw_floor_plan` creates its output directory; never save to a hardcoded `output/` path from the caller's cwd without creating it.

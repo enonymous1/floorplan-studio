@@ -94,6 +94,38 @@ def test_missing_file_raises(tmp_path):
         load_plan(tmp_path / "nope.yaml")
 
 
+def test_load_rejects_unknown_suffix(tmp_path):
+    with pytest.raises(ValueError, match="suffix"):
+        load_plan(write(tmp_path, "plan.txt", '{"version": 1, "rooms": []}'))
+
+
+def test_metadata_date_object_accepted():
+    import datetime
+
+    data = sample_dict()
+    data["date"] = datetime.date(2025, 9, 19)
+    plan = plan_from_dict(data)
+    assert plan.date == "2025-09-19"
+
+
+def test_dump_plan_creates_parent_dirs_and_round_trips(tmp_path):
+    plan = plan_from_dict(sample_dict())
+    out = tmp_path / "nested" / "deep" / "plan.json"
+    dump_plan(plan, out)
+    assert load_plan(out).to_dict() == plan.to_dict()
+    assert not list(tmp_path.rglob("*.tmp"))  # no temp files left behind
+
+
+def test_style_missing_sections_raises(tmp_path):
+    with pytest.raises(ValueError, match="missing sections"):
+        load_style(write(tmp_path, "style.yaml", yaml.safe_dump({"settings": {}})))
+
+
+def test_style_malformed_yaml_raises(tmp_path):
+    with pytest.raises(ValueError, match="Could not parse style file"):
+        load_style(write(tmp_path, "style.yaml", "{unclosed: ["))
+
+
 def test_style_resolution_recursive_and_unknown(tmp_path):
     style = {
         "palette": {"base": "#111111", "alias": "@base"},

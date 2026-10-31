@@ -1,0 +1,15 @@
+# Keep the unpinned/lightly pinned dependencies moving safely.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /renderer
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /editor
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
