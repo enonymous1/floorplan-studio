@@ -1,5 +1,56 @@
 # Changelog
 
+## 2.2.2 — 2026-10-31
+
+Sample plan rebuilt again, this time after a published
+plan instead of an invented tiling. No plan-format
+change; the sample style changes scale and orientation
+so the wider house fits its page (see below).
+
+- Model: the split-bedroom ranch pattern of Houseplans
+  430-10 (1,400 sq ft, 3 bed / 2 bath, living 17 x 16.5
+  ft, primary 14'4" x 11'6", secondary 11'4" x 11',
+  garage 21'4" x 21'8") — the same arrangement, redrawn
+  to rectangle-only rooms, not a copy of its drawings.
+  Front entry into an open great room, kitchen and
+  dining open to it at the rear, primary suite in its
+  own west wing, secondary bedrooms off one hall in
+  the east wing, garage entry through a mudroom.
+- Layout (74 x 36 ft, 1,872 sq ft living): Garage
+  22 x 20 ft (440 sq ft) with a 16 ft double vehicle
+  door (`swing: "none"`, an overhead door has no leaf
+  or arc — the old "garage door" was a 3 ft swing door
+  on a 20 x 10 ft garage a car cannot fit in);
+  Mudroom 14 x 10 ft (garage entry, laundry here);
+  Living Room 22 x 18 ft with the front door on the
+  south (street) wall; Kitchen 11 x 18 ft and Dining
+  Room 11 x 18 ft open to the Living Room and each
+  other, rear door from the Kitchen; Primary Bedroom
+  14 x 14 ft -> Walk-in Closet 14 x 6 ft -> Primary
+  Bath 14 x 6 ft, entered from the Living Room; Hall
+  5 x 24 ft, a single-loaded corridor off the Living
+  Room serving Bedroom 3 (16 x 12 ft, front), Bathroom
+  (11 x 10 ft, shared), and Bedroom 2 (11 x 14 ft,
+  rear). No bedroom is reached through another room,
+  and every bedroom has an exterior window — the
+  Primary Bedroom's is on the west wall north of the
+  Garage roofline, because its wall south of that line
+  backs onto the Garage and a window there would open
+  into it.
+- Sample style: scale 1/4" portrait -> 1/8" landscape.
+  At 1/4" the 74 ft house is 1,850 points wide against
+  an 850-point portrait page, so the Garage and the
+  whole east wing were clipped off the render (the
+  first render of this layout showed exactly that).
+  1/8" landscape is the usual sheet for a wide
+  single-story house; the render now fits with no
+  clipping warning.
+- Known minor, unchanged from 2.1.1: room dimensions
+  are drawn inside rooms, so in the 5 ft Hall the
+  vertical dimension label sits tight against the
+  room label. Both are readable; moving dimensions
+  outside narrow rooms is still a separate change.
+
 ## 2.2.1 — 2026-10-31
 
 Sample plan rebuilt on a typical small single-story

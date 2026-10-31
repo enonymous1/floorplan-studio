@@ -3,21 +3,24 @@
 # All measurements are in feet (as defined in floor_plan_style.yaml).
 # The coordinate system: (0,0) is bottom-left, x increases right, y increases up.
 # Scaling and rendering settings are controlled in floor_plan_style.yaml.
+#
+# South (y = 0) is the street side; north (top) is the rear.
+# Sample only, not a construction plan: rooms are rectangles, so
+# closets, pantries, islands and fixtures are not modelled.
 
-# Boundary: Defines the outer perimeter of the floor plan as a list of [x, y] points.
-# The boundary should form a closed shape (first and last points connect).
-# It follows the union outline of the rooms, so the Garage is inside
-# it: the southeast corner below the Kitchen (x 20-32, y -10-0) is
-# outside the house and is deliberately not enclosed. A rectangle
-# here used to leave the Garage outside the boundary, so its bottom
-# edge cut through the middle of the plan.
+# Boundary: the union outline of the rooms. The Garage sits
+# west of the house, so the boundary steps in at y = 20
+# (the Garage roofline) and out again at x = 22 (the house
+# west wall). A rectangle here used to leave the Garage
+# outside the boundary, so its bottom edge cut through the
+# middle of the plan.
 boundary:
-  - [0, -10]    # Garage bottom-left corner
-  - [20, -10]   # Garage bottom-right corner
-  - [20, 0]     # Step in at the Garage / Living Room line
-  - [32, 0]     # Bottom-right corner (Kitchen)
-  - [32, 27]    # Top-right corner
-  - [0, 27]     # Top-left corner
+  - [0, 0]     # Garage / house south-west corner (street side)
+  - [74, 0]    # House south-east corner
+  - [74, 36]   # House north-east corner (rear)
+  - [22, 36]   # House north-west corner
+  - [22, 20]   # Step in at the Garage roofline
+  - [0, 20]    # Garage north-west corner
 
 # Rooms: List of rooms in the floor plan.
 # Each room has:
@@ -26,16 +29,29 @@ boundary:
 # - doors: Optional list of door positions as [start_pos, end_pos]
 # - windows: Optional list of window positions as [start_pos, end_pos]
 #
-# Layout pattern (typical small single-story, after the usual
-# published patterns): open living/kitchen across the south
-# half, bedrooms and bath clustered in the north half for
-# privacy, and circulation kept to a minimum — a short
-# central hall in the bedroom wing, not a corridor across
-# the house. The previous sample's full-width 4 ft hallway
-# (128 sq ft) was the strange part: it shrank the bedrooms
-# to 8 ft deep. Here the hall is 6 x 7 ft (42 sq ft) and the
-# bedrooms are 13 ft deep, in the usual ranges (primary
-# ~160-190 sq ft, secondary ~120-140 sq ft).
+# Layout pattern, modelled on the split-bedroom ranch that
+# dominates current published 3-bed plans (e.g. Houseplans
+# 430-10: 1,400 sq ft, 3 bed / 2 bath, living 17 x 16.5 ft,
+# primary 14'4" x 11'6", secondary 11'4" x 11', garage
+# 21'4" x 21'8"): front entry into an open great room,
+# kitchen and dining open to it at the rear, the primary
+# suite in its own west wing, the secondary bedrooms in an
+# east wing off one hall, and garage entry through a
+# mudroom. This is the same arrangement, redrawn to the
+# renderer's rectangle-only rooms — not a copy of that
+# plan's drawings.
+#
+# What made the earlier samples unrealistic, and what is
+# different here: the Garage is 22 x 20 ft (a car fits;
+# the old one was 20 x 10 ft) with a 16 ft double door
+# (swing "none": an overhead door has no leaf or arc,
+# the old one was a 3 ft swing door); the front door is
+# on the south (street) wall, not a side wall; every
+# bedroom has an exterior window (the old middle rooms
+# had none, because they backed onto the Garage); and
+# no bedroom is reached through another room — the
+# primary suite runs Bedroom -> Closet -> Bath, and the
+# secondary bedrooms all open off the Hall.
 #
 # Circulation, read before editing: every room draws its own
 # walls, so a door between two rooms must be listed in BOTH
@@ -44,87 +60,149 @@ boundary:
 # match: "in" for the room the door swings into, "out" for the
 # other room. A door listed in only one room, or a bedroom door
 # on a wall shared with another bedroom, is a broken plan, not
-# a rendering quirk — the previous sample had both.
+# a rendering quirk.
 rooms:
   - name: Living Room
-    rect: [0, 0, 20, 14]  # Open plan with the Kitchen (south half)
+    rect: [36, 0, 22, 18]  # Great room, south-centre (396 sq ft)
     doors:
-      - pos: [[0, 6], [0, 9]]  # Front entrance, west (exterior) wall
+      - pos: [[45, 0], [48, 0]]  # Front entrance, south (street) wall
         swing: in  # Swings into the Living Room
-      - pos: [[10, 0], [13, 0]]  # To the Garage (paired below)
+      - pos: [[36, 3], [36, 6]]  # From the Mudroom (paired below)
         swing: in  # Swings into the Living Room
-      - pos: [[15, 14], [18, 14]]  # To the Hall (paired below)
-        swing: out  # Swings into the Hall
-      - pos: [[20, 6], [20, 9]]  # Open passage to the Kitchen (paired below)
+      - pos: [[36, 12], [36, 15]]  # To the Primary Bedroom (paired below)
+        swing: out  # Swings into the Primary Bedroom
+      - pos: [[40, 18], [43, 18]]  # Open passage to the Kitchen (paired below)
         swing: none  # No leaf, no arc: just the opening
+      - pos: [[52, 18], [55, 18]]  # Open passage to the Dining Room (paired below)
+        swing: none
+      - pos: [[58, 14], [58, 17]]  # To the Hall (paired below)
+        swing: out  # Swings into the Hall
     windows:
-      - pos: [[0, 10], [0, 13]]  # West window, north of the front door
+      - pos: [[38, 0], [41, 0]]  # South window, west of the front door
+      - pos: [[52, 0], [55, 0]]  # South window, east of the front door
 
   - name: Kitchen
-    rect: [20, 0, 12, 14]  # Open plan with the Living Room (south half)
+    rect: [36, 18, 11, 18]  # Rear-centre, open to Living and Dining (198 sq ft)
     doors:
-      - pos: [[20, 6], [20, 9]]  # Open passage to the Living Room
+      - pos: [[40, 18], [43, 18]]  # Open passage to the Living Room
+        swing: none
+      - pos: [[47, 22], [47, 25]]  # Open passage to the Dining Room (paired below)
+        swing: none
+      - pos: [[40, 36], [43, 36]]  # Rear door to the backyard, north wall
+        swing: in  # Swings into the Kitchen
+    windows:
+      - pos: [[36, 36], [39, 36]]  # North window, west of the rear door
+
+  - name: Dining Room
+    rect: [47, 18, 11, 18]  # Rear-centre, open to Living and Kitchen (198 sq ft)
+    doors:
+      - pos: [[52, 18], [55, 18]]  # Open passage to the Living Room
+        swing: none
+      - pos: [[47, 22], [47, 25]]  # Open passage to the Kitchen
         swing: none
     windows:
-      - pos: [[32, 4], [32, 11]] # East window
+      - pos: [[51, 36], [55, 36]]  # North window to the backyard
 
-  # Short central hall in the bedroom wing (x 14-20, y 14-21):
-  # it serves the two bedrooms and the bath, and nothing else.
-  # It is entered from the Living Room; no room is reached
-  # by walking through another bedroom or the bathroom.
+  # Single-loaded hall in the east wing (x 58-63, y 12-36):
+  # entered from the Living Room, it serves Bedroom 3 at its
+  # south end, the Bathroom in the middle, and Bedroom 2 at
+  # its north end, and nothing else. It is 5 ft wide, not a
+  # room in its own right — no windows, no furniture wall.
   - name: Hall
-    rect: [14, 14, 6, 7]
+    rect: [58, 12, 5, 24]
     doors:
-      - pos: [[15, 14], [18, 14]]  # From the Living Room (paired above)
+      - pos: [[58, 14], [58, 17]]  # From the Living Room (paired above)
         swing: in  # Swings into the Hall
-      - pos: [[14, 16], [14, 19]]  # To the Master Bedroom (paired below)
-        swing: out  # Swings into the Master Bedroom
-      - pos: [[20, 16], [20, 19]]  # To Bedroom 2 (paired below)
-        swing: out  # Swings into Bedroom 2
-      - pos: [[14, 21], [16.5, 21]]  # To the Bathroom (paired below)
+      - pos: [[59, 12], [62, 12]]  # To Bedroom 3 (paired below)
+        swing: out  # Swings into Bedroom 3
+      - pos: [[63, 15], [63, 18]]  # To the Bathroom (paired below)
         swing: out  # Swings into the Bathroom
-        # At the west end of the wall, so the leaf and arc stay
-        # clear of the Bathroom's centred label (a 3 ft door at
-        # the centre of a 6 ft room drew straight through it).
+      - pos: [[63, 26], [63, 29]]  # To Bedroom 2 (paired below)
+        swing: out  # Swings into Bedroom 2
     # No windows: an interior hall.
 
-  - name: Master Bedroom
-    rect: [0, 14, 14, 13]  # West of the Hall (182 sq ft)
+  - name: Primary Bedroom
+    rect: [22, 10, 14, 14]  # West wing, entered from the Living Room (196 sq ft)
     doors:
-      - pos: [[14, 16], [14, 19]]  # From the Hall (paired above)
-        swing: in  # Swings into the Master Bedroom
+      - pos: [[36, 12], [36, 15]]  # From the Living Room (paired above)
+        swing: in  # Swings into the Primary Bedroom
+      - pos: [[23, 24], [26, 24]]  # To the Walk-in Closet (paired below)
+        swing: out  # Swings into the Closet
+        # At the west end of the wall, so the leaf and arc stay
+        # clear of the Bedroom's centred label.
     windows:
-      - pos: [[0, 17], [0, 23]]   # West window
-      - pos: [[5, 27], [11, 27]]  # North window
+      # West window, on the house west wall north of the Garage
+      # roofline (y 20-36 is exterior; y 0-20 backs onto the Garage,
+      # so no window there — a window into a garage is the mistake
+      # the old west rooms made).
+      - pos: [[22, 21], [22, 24]]  # West window
 
-  - name: Bathroom
-    rect: [14, 21, 6, 6]  # At the end of the Hall (36 sq ft, hall bath)
+  - name: Walk-in Closet
+    rect: [22, 24, 14, 6]  # Between Bedroom and Bath (84 sq ft)
     doors:
-      - pos: [[14, 21], [16.5, 21]]  # From the Hall (paired above)
-        swing: in  # Swings into the Bathroom
+      - pos: [[23, 24], [26, 24]]  # From the Primary Bedroom (paired above)
+        swing: in  # Swings into the Closet
+      - pos: [[32, 30], [35, 30]]  # To the Primary Bath (paired below)
+        swing: out  # Swings into the Primary Bath
+        # At the east end of the wall, clear of the Bath's label.
+    # No windows: a closet.
+
+  - name: Primary Bath
+    rect: [22, 30, 14, 6]  # Ensuite, at the end of the suite (84 sq ft)
+    doors:
+      - pos: [[32, 30], [35, 30]]  # From the Walk-in Closet (paired above)
+        swing: in  # Swings into the Primary Bath
     windows:
-      - pos: [[16, 27], [19, 27]] # North window
+      - pos: [[22, 31], [22, 34]]  # West window
+
+  - name: Mudroom
+    rect: [22, 0, 14, 10]  # Garage entry; laundry lives here (140 sq ft)
+    doors:
+      - pos: [[22, 3], [22, 6]]  # From the Garage (paired below)
+        swing: in  # Swings into the Mudroom
+      - pos: [[36, 3], [36, 6]]  # To the Living Room (paired above)
+        swing: out  # Swings into the Living Room
+    windows:
+      - pos: [[26, 0], [29, 0]]  # South window
 
   - name: Bedroom 2
-    rect: [20, 14, 12, 13]  # East of the Hall (156 sq ft)
+    rect: [63, 22, 11, 14]  # East wing, rear, off the Hall (154 sq ft)
     doors:
-      - pos: [[20, 16], [20, 19]]  # From the Hall (paired above)
+      - pos: [[63, 26], [63, 29]]  # From the Hall (paired above)
         swing: in  # Swings into Bedroom 2
     windows:
-      - pos: [[32, 17], [32, 23]] # East window
-      - pos: [[24, 27], [30, 27]] # North window
+      - pos: [[74, 26], [74, 30]]  # East window
+      - pos: [[66, 36], [70, 36]]  # North window
+
+  - name: Bathroom
+    rect: [63, 12, 11, 10]  # Shared bath, off the Hall (110 sq ft)
+    doors:
+      - pos: [[63, 15], [63, 18]]  # From the Hall (paired above)
+        swing: in  # Swings into the Bathroom
+    windows:
+      - pos: [[74, 15], [74, 18]]  # East window
+
+  - name: Bedroom 3
+    rect: [58, 0, 16, 12]  # East wing, front, off the Hall's south end (192 sq ft)
+    doors:
+      - pos: [[59, 12], [62, 12]]  # From the Hall (paired above)
+        swing: in  # Swings into Bedroom 3
+    windows:
+      - pos: [[64, 0], [68, 0]]  # South window
+      - pos: [[74, 5], [74, 9]]  # East window
 
   - name: Garage
-    rect: [0, -10, 20, 10]  # Below living room (negative y for basement/garage)
+    rect: [0, 0, 22, 20]  # Two-car, 22 ft wide x 20 ft deep (440 sq ft)
     doors:
-      - pos: [[10, 0], [13, 0]]  # To the Living Room (paired above)
-        swing: out  # Swings into the Living Room
-      - pos: [[10, -10], [13, -10]] # Garage door, south (exterior) wall
-        swing: out  # Swings out to the driveway
-    # No windows in garage
+      - pos: [[22, 3], [22, 6]]  # To the Mudroom (paired above)
+        swing: out  # Swings into the Mudroom
+      - pos: [[3, 0], [19, 0]]  # Double vehicle door, south (street) wall
+        swing: none  # Overhead door: a gap, no leaf, no arc
+    windows:
+      - pos: [[0, 8], [0, 11]]  # West window
 
 # Suggestions for enhancement:
-# - Add more room types: Dining Room, Laundry, Closets, etc.
+# - Add more room types: Pantry, Laundry (separate), Office, etc.
 # - Include furniture or fixtures if needed for detailed plans
 # - Add labels or notes for special features
 # - Consider adding electrical outlets, plumbing fixtures for detailed plans

@@ -7,9 +7,15 @@
 settings:
   background_color: '#FFFFFF'  # Background color of the entire plot (white)
   units: 'feet'  # Units for measurements (feet, meters, etc.) - affects scaling
-  scale: '1/4'  # Scale as fraction (e.g., '1/4' means 1/4 inch per foot)
+  # 1/8" on a landscape sheet, not 1/4" portrait: the sample house
+  # is 74 ft wide, and at 1/4" that is 1,850 points against an
+  # 850-point portrait page, so the Garage and the east wing
+  # were clipped off the page. 1/8" landscape is the usual
+  # sheet for a wide single-story house (74 ft x 12.5 = 925
+  # points against an 1,100-point landscape page).
+  scale: '1/8'  # Scale as fraction (e.g., '1/8' means 1/8 inch per foot)
   paper_size: '8.5x11'  # Paper size in inches (e.g., '8.5x11', '11x17', 'A4')
-  orientation: 'vertical'  # Page orientation: 'horizontal' (landscape) or 'vertical' (portrait)
+  orientation: 'horizontal'  # Page orientation: 'horizontal' (landscape) or 'vertical' (portrait)
   title: 'Residential Floor Plan'  # Title for the plan
   address: '123 Main Street'  # Address for title block
   date: '2025-09-19'  # Date for title block

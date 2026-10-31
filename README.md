@@ -466,6 +466,14 @@ Hallway, a front door, an open Living-Kitchen passage)
 and adds `swing: "none"` for passageways. Version 2.2.1
 replaces that full-width hallway with the typical
 small-house pattern: open living/kitchen south, a short
-central hall in the bedroom wing north. See
-[CHANGELOG.md](CHANGELOG.md) for what changed and what
-was removed.
+central hall in the bedroom wing north. Version 2.2.2
+rebuilds the sample again, after a published
+split-bedroom ranch (Houseplans 430-10) rather than an
+invented tiling: a 22 x 20 ft garage with a 16 ft double
+door, mudroom garage entry, great room with a street-side
+front door, kitchen/dining open at the rear, a primary
+suite (bedroom, closet, bath) in the west wing, and a
+single-loaded hall serving the east bedrooms — drawn at
+1/8" on a landscape sheet so the 74 ft house fits its
+page. See [CHANGELOG.md](CHANGELOG.md) for what changed
+and what was removed.
