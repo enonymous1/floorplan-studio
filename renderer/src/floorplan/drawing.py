@@ -86,8 +86,8 @@ def parse_paper_size(size_str, orientation="vertical"):
     )
 
 
-def draw_boundary(ax, boundary, style, scale_factor, offset_x=0, offset_y=0):
-    """Draw the boundary polygon plus overall dimension labels.
+def draw_boundary(ax, boundary, style, scale_factor, offset_x=0, offset_y=0, doors=None):
+    """Draw the boundary outline plus overall dimension labels.
 
     The labels are bounding-box dimensions (overall width/height),
     not per-edge lengths, and are placed outside the box (below the
@@ -96,16 +96,60 @@ def draw_boundary(ax, boundary, style, scale_factor, offset_x=0, offset_y=0):
     order and labelled a trapezoid's corners wrong, and the sample
     plan's rectangle labelled an edge that was actually interior
     once the Garage sat outside it.
+
+    The outline is drawn edge by edge, not as one closed polygon,
+    so it can break at exterior doors (``doors`` is the plan's
+    room doors plus standalone door openings). A closed polygon
+    would draw straight over the gap a room wall just cut, hiding
+    every exterior door behind the outline.
     """
     if not boundary:
         return
     wall_style = style["line_styles"]["exterior_wall"]
-    scaled_boundary = [
-        (x * scale_factor + offset_x, y * scale_factor + offset_y) for x, y in boundary
-    ]
-    ax.add_patch(patches.Polygon(
-        scaled_boundary, closed=True,
-        linewidth=wall_style["thickness"], edgecolor=wall_style["color"], facecolor="none"))
+    tol = 1e-6
+    for i, (x1, y1) in enumerate(boundary):
+        x2, y2 = boundary[(i + 1) % len(boundary)]
+        # Gap intervals along this edge, as fractions of the edge
+        # from (x1, y1) to (x2, y2), from doors lying on the edge.
+        gaps = []
+        for door in doors or []:
+            pos = door.get("pos") if isinstance(door, dict) else None
+            if not isinstance(pos, list) or len(pos) != 2:
+                continue
+            (dx1, dy1), (dx2, dy2) = pos
+            if abs(y1 - y2) < tol and abs(dy1 - dy2) < tol and abs(dy1 - y1) < tol:
+                lo = max(min(x1, x2), min(dx1, dx2))
+                hi = min(max(x1, x2), max(dx1, dx2))
+                if hi > lo and x2 != x1:
+                    # min/max, not lo/hi order: an edge running
+                    # right-to-left (like the closing west edge)
+                    # gives a larger t for the smaller coordinate,
+                    # and an unsorted interval draws no gap at all.
+                    t1, t2 = (lo - x1) / (x2 - x1), (hi - x1) / (x2 - x1)
+                    gaps.append((min(t1, t2), max(t1, t2)))
+            elif abs(x1 - x2) < tol and abs(dx1 - dx2) < tol and abs(dx1 - x1) < tol:
+                lo = max(min(y1, y2), min(dy1, dy2))
+                hi = min(max(y1, y2), max(dy1, dy2))
+                if hi > lo and y2 != y1:
+                    t1, t2 = (lo - y1) / (y2 - y1), (hi - y1) / (y2 - y1)
+                    gaps.append((min(t1, t2), max(t1, t2)))
+        gaps.sort()
+        current = 0.0
+        segments = []
+        for lo, hi in gaps:
+            lo, hi = max(0.0, lo), min(1.0, hi)
+            if lo > current:
+                segments.append((current, lo))
+            current = max(current, hi)
+        if current < 1.0:
+            segments.append((current, 1.0))
+        for t1, t2 in segments:
+            sx1 = (x1 + t1 * (x2 - x1)) * scale_factor + offset_x
+            sy1 = (y1 + t1 * (y2 - y1)) * scale_factor + offset_y
+            sx2 = (x1 + t2 * (x2 - x1)) * scale_factor + offset_x
+            sy2 = (y1 + t2 * (y2 - y1)) * scale_factor + offset_y
+            ax.plot([sx1, sx2], [sy1, sy2],
+                    color=wall_style["color"], linewidth=wall_style["thickness"])
     xs = [p[0] for p in boundary]
     ys = [p[1] for p in boundary]
     min_x, max_x = min(xs), max(xs)
@@ -174,7 +218,10 @@ def _draw_openings(ax, plan, style, scale_factor, offset_x, offset_y):
                     color=door_style["color"], linewidth=door_style["thickness"],
                     linestyle=(0, (4, 3)))
             length = math.hypot(sx2 - sx1, sy2 - sy1)
-            if length > 0:
+            # A standalone passage ("none") is just the dashed
+            # segment above: no swing arc, for the same reason as
+            # room doors (see room.py).
+            if length > 0 and opening.get("swing") != "none":
                 swing_in = opening.get("swing", "in") == "in"
                 # Quarter-circle swing from the hinge (first endpoint).
                 angle = math.degrees(math.atan2(sy2 - sy1, sx2 - sx1))
@@ -326,7 +373,10 @@ def draw_floor_plan(plan, style, output_dir="output", fmt="svg", extras=True):
         (page_width_points / 2, 0), page_width_points / 2, BOTTOM_MARGIN,
         facecolor="lightpink", alpha=highlight_alpha))
 
-    draw_boundary(ax, plan.boundary, style, scale_factor, offset_x, offset_y)
+    exterior_doors = [d for room in plan.rooms for d in room.doors]
+    exterior_doors += [o for o in plan.openings if o.get("kind") == "door"]
+    draw_boundary(ax, plan.boundary, style, scale_factor, offset_x, offset_y,
+                  doors=exterior_doors)
     draw_north_arrow(ax, style, scale_factor, page_width_points, page_height_points)
     for room in plan.rooms:
         room.draw(ax, style, scale_factor, offset_x, offset_y, plan.boundary)

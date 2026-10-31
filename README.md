@@ -461,5 +461,8 @@ version single-sourced from `pyproject.toml`. Version
 full quarter-circle arc, the north-arrow "N" sits above the
 arrow tip, and the sample plan no longer has a Hallway
 duplicating the Bathroom or a Garage outside the boundary.
-See [CHANGELOG.md](CHANGELOG.md) for what changed and what
+Version 2.2.0 rebuilds the sample's circulation (a real
+Hallway, a front door, an open Living-Kitchen passage)
+and adds `swing: "none"` for passageways. See
+[CHANGELOG.md](CHANGELOG.md) for what changed and what
 was removed.

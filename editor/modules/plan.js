@@ -102,8 +102,9 @@ export function validatePlan(plan) {
     if (!isSegment(opening.pos) || !isAxisAligned(opening.pos)) {
       errors.push(`${where} pos must be a horizontal or vertical [[x1, y1], [x2, y2]] segment`);
     }
-    if (opening.swing !== undefined && opening.swing !== 'in' && opening.swing !== 'out') {
-      errors.push(`${where} swing must be 'in' or 'out'`);
+    // 'none' is an open passageway: a wall gap with no leaf or arc.
+    if (opening.swing !== undefined && opening.swing !== 'in' && opening.swing !== 'out' && opening.swing !== 'none') {
+      errors.push(`${where} swing must be 'in', 'out', or 'none'`);
     }
   };
   plan.rooms.forEach((room, i) => {

@@ -50,8 +50,10 @@ def _validate_opening(entry: Any, index: int, what: str) -> dict[str, Any]:
     pos = _as_axis_aligned_segment(entry["pos"], f"{what} {index} pos")
     validated: dict[str, Any] = {"pos": pos}
     if "swing" in entry:
-        if entry["swing"] not in ("in", "out"):
-            raise ValueError(f"{what} {index} swing must be 'in' or 'out'")
+        # "none" is an open passageway (cased opening): it still cuts
+        # a gap in the wall, but the renderer draws no leaf or arc.
+        if entry["swing"] not in ("in", "out", "none"):
+            raise ValueError(f"{what} {index} swing must be 'in', 'out', or 'none'")
         validated["swing"] = entry["swing"]
     for key in ("editor",):
         if key in entry:

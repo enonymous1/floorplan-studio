@@ -25,59 +25,87 @@ boundary:
 # - rect: [x, y, width, height] - position and size in feet
 # - doors: Optional list of door positions as [start_pos, end_pos]
 # - windows: Optional list of window positions as [start_pos, end_pos]
+# Circulation, read before editing: every room draws its own
+# walls, so a door between two rooms must be listed in BOTH
+# rooms, or one side's wall draws straight across the gap.
+# The two listings use opposite swing flags so the leaf and arc
+# match: "in" for the room the door swings into, "out" for the
+# other room. A door listed in only one room, or a bedroom door
+# on a wall shared with another bedroom, is a broken plan, not
+# a rendering quirk — the previous sample had both.
 rooms:
   - name: Living Room
     rect: [0, 0, 20, 15]  # x=0, y=0, width=20ft, height=15ft
     doors:
-      - pos: [[10, 0], [13, 0]]  # Door from (10,0) to (13,0) - front entrance
-        swing: in  # Swing inward
+      - pos: [[0, 6], [0, 9]]  # Front entrance, west (exterior) wall
+        swing: in  # Swings into the Living Room
+      - pos: [[10, 0], [13, 0]]  # To the Garage (paired below)
+        swing: in  # Swings into the Living Room
+      - pos: [[8, 15], [11, 15]]  # To the Hallway (paired below)
+        swing: out  # Swings into the Hallway
+      - pos: [[20, 6], [20, 9]]  # Open passage to the Kitchen (paired below)
+        swing: none  # No leaf, no arc: just the opening
     windows:
-      - pos: [[2, 15], [8, 15]]   # Window along front wall
-      - pos: [[12, 15], [18, 15]] # Another window
+      - pos: [[0, 11], [0, 14]]  # West window, north of the front door
 
   - name: Kitchen
     rect: [20, 0, 12, 15]  # Adjacent to living room
     doors:
-      - pos: [[20, 6], [20, 9]]  # Door to backyard
-        swing: out  # Swing outward
+      - pos: [[20, 6], [20, 9]]  # Open passage to the Living Room
+        swing: none
     windows:
       - pos: [[32, 4], [32, 11]] # Side window
 
-  - name: Master Bedroom
-    rect: [0, 15, 15, 12]  # Above living room
+  # The Hallway is a real 4 ft corridor (y 15-19) across the
+  # house, not a room overlapping another room. Every bedroom
+  # and the bathroom open off it, and it is entered from the
+  # Living Room — nobody has to walk through a bedroom or a
+  # bathroom to reach another room.
+  - name: Hallway
+    rect: [0, 15, 32, 4]
     doors:
-      - pos: [[15, 18], [15, 21]] # Door to hallway
-        swing: in  # Swing inward
+      - pos: [[8, 15], [11, 15]]  # From the Living Room (paired above)
+        swing: in  # Swings into the Hallway
+      - pos: [[5, 19], [8, 19]]  # To the Master Bedroom (paired below)
+        swing: out  # Swings into the Master Bedroom
+      - pos: [[17, 19], [20, 19]]  # To the Bathroom (paired below)
+        swing: out  # Swings into the Bathroom
+      - pos: [[25, 19], [28, 19]]  # To Bedroom 2 (paired below)
+        swing: out  # Swings into Bedroom 2
+    # No windows: an interior corridor with exterior end walls
+    # only at x=0 and x=32, kept blank here.
+
+  - name: Master Bedroom
+    rect: [0, 19, 15, 8]  # North of the Hallway
+    doors:
+      - pos: [[5, 19], [8, 19]]  # From the Hallway (paired above)
+        swing: in  # Swings into the Master Bedroom
     windows:
-      - pos: [[0, 18], [0, 24]]   # Front window
+      - pos: [[0, 21], [0, 24]]   # West window
 
   - name: Bathroom
-    rect: [15, 15, 7, 12]  # Next to master bedroom
+    rect: [15, 19, 7, 8]  # North of the Hallway
     doors:
-      - pos: [[15, 16], [15, 18]] # Door from hallway
-        swing: in  # Swing inward
+      - pos: [[17, 19], [20, 19]]  # From the Hallway (paired above)
+        swing: in  # Swings into the Bathroom
     windows:
-      - pos: [[17, 27], [22, 27]] # Small window
+      - pos: [[17, 27], [22, 27]] # Top window
 
-  # Additional rooms for a more complete floor plan
   - name: Bedroom 2
-    rect: [22, 15, 10, 12]  # Next to bathroom
+    rect: [22, 19, 10, 8]  # North of the Hallway
     doors:
-      - pos: [[22, 18], [22, 21]] # Door from hallway
-        swing: in  # Swing inward
+      - pos: [[25, 19], [28, 19]]  # From the Hallway (paired above)
+        swing: in  # Swings into Bedroom 2
     windows:
-      - pos: [[32, 18], [32, 24]] # Side window
-
-  # No separate Hallway room: an earlier version gave it the exact
-  # rectangle of the Bathroom, so the two rooms (labels, walls,
-  # doors) were drawn on top of each other. The Master Bedroom and
-  # Bedroom 2 doors above are the rooms' own doors and remain.
+      - pos: [[32, 21], [32, 24]] # Side window
 
   - name: Garage
     rect: [0, -10, 20, 10]  # Below living room (negative y for basement/garage)
     doors:
-      - pos: [[10, -10], [13, -10]] # Garage door
-        swing: out  # Garage doors typically swing outward
+      - pos: [[10, 0], [13, 0]]  # To the Living Room (paired above)
+        swing: out  # Swings into the Living Room
+      - pos: [[10, -10], [13, -10]] # Garage door, south (exterior) wall
+        swing: out  # Swings out to the driveway
     # No windows in garage
 
 # Suggestions for enhancement:

@@ -1,1 +1,209 @@
-{"$defs":{"openings":{"items":{"properties":{"pos":{"$ref":"#/$defs/segment"},"swing":{"enum":["in","out"]}},"required":["pos"],"type":"object"},"type":"array"},"point":{"items":{"type":"number"},"maxItems":2,"minItems":2,"type":"array"},"rect":{"items":{"type":"number"},"maxItems":4,"minItems":4,"type":"array"},"segment":{"items":{"$ref":"#/$defs/point"},"maxItems":2,"minItems":2,"type":"array"}},"$id":"https://github.com/enonymous1/floorplan-studio/schema/plan-v1.json","$schema":"https://json-schema.org/draft/2020-12/schema","description":"The interchange format between the browser editor (editor/) and the Python renderer (renderer/). Coordinates are feet, origin bottom-left, y increasing upwards. This schema owns shape, required keys, and types; semantic rules (axis-aligned doors/windows, positive room sizes) live in the validators (renderer/src/floorplan/data_loader.py, editor/modules/plan.js). Additional properties are allowed so newer writers can add fields without breaking older readers.","properties":{"address":{"type":"string"},"boundary":{"items":{"$ref":"#/$defs/point"},"minItems":3,"type":"array"},"date":{"type":"string"},"dimensions":{"items":{"properties":{"label":{"type":"string"},"pos":{"$ref":"#/$defs/segment"}},"required":["pos"],"type":"object"},"type":"array"},"labels":{"items":{"properties":{"point":{"$ref":"#/$defs/point"},"rotation":{"type":"number"},"text":{"type":"string"}},"required":["text","point"],"type":"object"},"type":"array"},"objects":{"items":{"properties":{"kind":{"enum":["stairs","road"]},"label":{"type":["string","null"]},"rect":{"$ref":"#/$defs/rect"}},"required":["kind","rect"],"type":"object"},"type":"array"},"openings":{"items":{"properties":{"kind":{"enum":["door","window"]},"pos":{"$ref":"#/$defs/segment"},"swing":{"enum":["in","out"]}},"required":["kind","pos"],"type":"object"},"type":"array"},"rooms":{"items":{"properties":{"doors":{"$ref":"#/$defs/openings"},"name":{"minLength":1,"type":"string"},"rect":{"$ref":"#/$defs/rect"},"windows":{"$ref":"#/$defs/openings"}},"required":["name","rect"],"type":"object"},"type":"array"},"title":{"type":"string"},"version":{"const":1},"walls":{"items":{"properties":{"pos":{"$ref":"#/$defs/segment"}},"required":["pos"],"type":"object"},"type":"array"}},"required":["rooms"],"title":"floorplan-studio plan format, version 1","type":"object"}
+{
+  "$defs": {
+    "openings": {
+      "items": {
+        "properties": {
+          "pos": {
+            "$ref": "#/$defs/segment"
+          },
+          "swing": {
+            "enum": [
+              "in",
+              "out",
+              "none"
+            ]
+          }
+        },
+        "required": [
+          "pos"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "point": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    },
+    "rect": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "segment": {
+      "items": {
+        "$ref": "#/$defs/point"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "type": "array"
+    }
+  },
+  "$id": "https://github.com/enonymous1/floorplan-studio/schema/plan-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The interchange format between the browser editor (editor/) and the Python renderer (renderer/). Coordinates are feet, origin bottom-left, y increasing upwards. This schema owns shape, required keys, and types; semantic rules (axis-aligned doors/windows, positive room sizes) live in the validators (renderer/src/floorplan/data_loader.py, editor/modules/plan.js). Additional properties are allowed so newer writers can add fields without breaking older readers.",
+  "properties": {
+    "address": {
+      "type": "string"
+    },
+    "boundary": {
+      "items": {
+        "$ref": "#/$defs/point"
+      },
+      "minItems": 3,
+      "type": "array"
+    },
+    "date": {
+      "type": "string"
+    },
+    "dimensions": {
+      "items": {
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "pos": {
+            "$ref": "#/$defs/segment"
+          }
+        },
+        "required": [
+          "pos"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "labels": {
+      "items": {
+        "properties": {
+          "point": {
+            "$ref": "#/$defs/point"
+          },
+          "rotation": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "point"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "objects": {
+      "items": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "stairs",
+              "road"
+            ]
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rect": {
+            "$ref": "#/$defs/rect"
+          }
+        },
+        "required": [
+          "kind",
+          "rect"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "openings": {
+      "items": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "door",
+              "window"
+            ]
+          },
+          "pos": {
+            "$ref": "#/$defs/segment"
+          },
+          "swing": {
+            "enum": [
+              "in",
+              "out"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "pos"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "rooms": {
+      "items": {
+        "properties": {
+          "doors": {
+            "$ref": "#/$defs/openings"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "rect": {
+            "$ref": "#/$defs/rect"
+          },
+          "windows": {
+            "$ref": "#/$defs/openings"
+          }
+        },
+        "required": [
+          "name",
+          "rect"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "title": {
+      "type": "string"
+    },
+    "version": {
+      "const": 1
+    },
+    "walls": {
+      "items": {
+        "properties": {
+          "pos": {
+            "$ref": "#/$defs/segment"
+          }
+        },
+        "required": [
+          "pos"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "rooms"
+  ],
+  "title": "floorplan-studio plan format, version 1",
+  "type": "object"
+}

@@ -126,6 +126,13 @@ def test_style_malformed_yaml_raises(tmp_path):
         load_style(write(tmp_path, "style.yaml", "{unclosed: ["))
 
 
+def test_swing_none_is_an_open_passageway():
+    data = sample_dict()
+    data["rooms"][0]["doors"] = [{"pos": [[20, 6], [20, 9]], "swing": "none"}]
+    plan = plan_from_dict(data)
+    assert plan.rooms[0].doors[0]["swing"] == "none"
+
+
 def test_style_resolution_recursive_and_unknown(tmp_path):
     style = {
         "palette": {"base": "#111111", "alias": "@base"},

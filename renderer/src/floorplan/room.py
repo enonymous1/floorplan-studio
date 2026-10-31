@@ -331,6 +331,11 @@ class Room:
             sy2 = y2 * scale_factor + offset_y
 
             door_width = abs(sx2 - sx1) if abs(sy1 - sy2) < 1e-6 else abs(sy2 - sy1)
+            # Open passageway: the wall gap (cut by
+            # _draw_wall_segments from this same door list) is the
+            # whole drawing. No leaf, no arc.
+            if door.get("swing") == "none":
+                continue
             swing_in = door.get("swing", "in") == "in"
 
             if abs(sx1 - sx2) < 1e-6:  # Vertical door

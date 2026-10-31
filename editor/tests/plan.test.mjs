@@ -95,6 +95,19 @@ test('YAML serializer produces parseable, readable YAML', () => {
   assert.match(yaml, /swing: in\n/);
 });
 
+test('swing none is a valid open passageway', () => {
+  const passage = {
+    version: 1,
+    rooms: [{ name: 'R', rect: [0, 0, 20, 15], doors: [{ pos: [[20, 6], [20, 9]], swing: 'none' }], windows: [] }],
+  };
+  assert.deepEqual(validatePlan(passage), []);
+  const sideways = {
+    version: 1,
+    rooms: [{ name: 'R', rect: [0, 0, 20, 15], doors: [{ pos: [[20, 6], [20, 9]], swing: 'sideways' }], windows: [] }],
+  };
+  assert.ok(validatePlan(sideways).some((e) => e.includes('swing')));
+});
+
 test('parsePlanJson rejects bad plans', () => {
   assert.throws(() => parsePlanJson('{"version": 2, "rooms": []}'), /Unsupported plan version/);
   assert.throws(() => parsePlanJson('{"rooms": "nope"}'), /rooms/);

@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.2.0 — 2026-10-31
+
+The sample plan is now a house you can actually walk
+through, plus the format support that makes it possible.
+No breaking change: existing plans still validate.
+
+- **Open passageways: `swing: "none"`.** A door with
+  `swing: "none"` cuts a wall gap but draws no leaf or
+  arc, in the Python loader, the JSON Schema, and the
+  editor validator (standalone door openings too, where
+  it draws only the dashed segment). The editor has no
+  passage tool yet: a passage imported into the editor
+  keeps `swing: "none"` on re-export, but the canvas
+  still draws it as a door.
+- **Sample circulation rebuilt.** A real 4 ft Hallway
+  (y 15-19, 128 sq ft) runs across the house, entered
+  from the Living Room, with a door to each of the
+  Master Bedroom, Bathroom, and Bedroom 2. Bedrooms
+  shrank from 12 ft to 8 ft deep to make room for it
+  (Master 120, Bathroom 56, Bedroom 2 80 sq ft). A front
+  entrance now exists: a west-wall door into the Living
+  Room, alongside the Living-Garage door and the Garage
+  door. The Living-Kitchen swing door is now an open
+  passage (`swing: "none"`).
+- **Paired-door rule, documented in the sample.**
+  Every room draws its own walls, so a door between two
+  rooms must be listed in both rooms with opposite
+  swing flags ("in" for the room it swings into, "out"
+  for the other), or one side's wall draws across the
+  gap. The sample does this for every inter-room door.
+- **Boundary breaks at exterior doors.** The boundary
+  was a closed polygon, which drew straight over the
+  gap a room wall had cut and hid exterior doors. It is
+  now drawn edge by edge, breaking at any door lying
+  on an edge — including the reversed closing edge,
+  where the gap interval had to be min/max-sorted or
+  no gap appeared at all (caught by the new test).
+- Tests lock the circulation in: the sample's
+  bedroom/bathroom doors are exactly the Hallway's
+  doors, the passage is in both rooms with `"none"`,
+  and no door is shared directly between two bedrooms.
+
 ## 2.1.1 — 2026-10-31
 
 Render fixes for the artifacts in the sample render, plus the

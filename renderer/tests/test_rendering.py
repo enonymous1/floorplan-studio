@@ -163,7 +163,7 @@ def test_sample_plan_has_no_duplicate_rooms(example_files):
     plan_path, _ = example_files
     plan = load_plan(plan_path)
     assert [r.name for r in plan.rooms] == [
-        "Living Room", "Kitchen", "Master Bedroom", "Bathroom", "Bedroom 2", "Garage",
+        "Living Room", "Kitchen", "Hallway", "Master Bedroom", "Bathroom", "Bedroom 2", "Garage",
     ]
     xs = [p[0] for p in plan.boundary]
     ys = [p[1] for p in plan.boundary]
@@ -171,6 +171,76 @@ def test_sample_plan_has_no_duplicate_rooms(example_files):
         x, y, w, h = room.rect
         assert min(xs) <= x and x + w <= max(xs)
         assert min(ys) <= y and y + h <= max(ys)
+
+
+def test_passage_draws_no_leaf_or_arc():
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    room = Room("R", [0, 0, 20, 15])
+    room.doors = [{"pos": [[20, 6], [20, 9]], "swing": "none"}]
+    room._draw_doors(ax, {}, 25, 0, 0)
+    assert len(ax.patches) == 0 and len(ax.lines) == 0
+    plt.close(fig)
+
+
+def test_boundary_breaks_at_exterior_door():
+    import matplotlib.pyplot as plt
+
+    from floorplan.drawing import draw_boundary
+
+    style = {
+        "settings": {"units": "feet"},
+        "line_styles": {"exterior_wall": {"thickness": 4.0, "color": "black"}},
+    }
+    fig, ax = plt.subplots()
+    boundary = [[0.0, -10.0], [20.0, -10.0], [20.0, 0.0],
+                [32.0, 0.0], [32.0, 27.0], [0.0, 27.0]]
+    # Front door on the west (closing) edge, y 6-9.
+    draw_boundary(ax, boundary, style, 25, 0, 0,
+                  doors=[{"pos": [[0.0, 6.0], [0.0, 9.0]]}])
+    west_lines = [(tuple(line.get_xdata()), tuple(line.get_ydata()))
+                  for line in ax.lines if set(line.get_xdata()) == {0.0}]
+    # Closing edge runs 27 -> -10, broken at the door: 27-9 and 6--10.
+    assert ((0.0, 0.0), (675.0, 225.0)) in west_lines
+    assert ((0.0, 0.0), (150.0, -250.0)) in west_lines
+    plt.close(fig)
+
+
+def test_sample_circulation(example_files):
+    # The sample's circulation contract: a real Hallway, every
+    # bedroom/bathroom door paired with a Hallway door on the same
+    # segment, the Living-Kitchen passage in both rooms with swing
+    # "none", and a front door that is not the Garage door.
+    plan_path, _ = example_files
+    plan = load_plan(plan_path)
+    by_name = {r.name: r for r in plan.rooms}
+
+    def door_map(room):
+        return {tuple(map(tuple, d["pos"])): d.get("swing") for d in room.doors}
+
+    living = door_map(by_name["Living Room"])
+    kitchen = door_map(by_name["Kitchen"])
+    hallway = door_map(by_name["Hallway"])
+    # Front door: west wall of the Living Room, into the house.
+    assert living[((0.0, 6.0), (0.0, 9.0))] == "in"
+    # Open passage: in both rooms, no leaf, no arc.
+    passage = ((20.0, 6.0), (20.0, 9.0))
+    assert living[passage] == "none" and kitchen[passage] == "none"
+    # Every north room has exactly one door, and it is a Hallway door.
+    for name in ("Master Bedroom", "Bathroom", "Bedroom 2"):
+        doors = door_map(by_name[name])
+        assert len(doors) == 1, name
+        pos, swing = next(iter(doors.items()))
+        assert swing == "in" and pos in hallway, (name, pos)
+    # Hallway has its Living Room entry plus those three doors.
+    assert len(hallway) == 4
+    assert ((8.0, 15.0), (11.0, 15.0)) in hallway
+    # No door is shared between two bedrooms/bathroom directly.
+    north = ["Master Bedroom", "Bathroom", "Bedroom 2"]
+    for i, a in enumerate(north):
+        for b in north[i + 1:]:
+            assert not (set(door_map(by_name[a])) & set(door_map(by_name[b]))), (a, b)
 
 
 def test_render_editor_plan(tmp_path, example_files):
