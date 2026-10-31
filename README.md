@@ -463,6 +463,9 @@ arrow tip, and the sample plan no longer has a Hallway
 duplicating the Bathroom or a Garage outside the boundary.
 Version 2.2.0 rebuilds the sample's circulation (a real
 Hallway, a front door, an open Living-Kitchen passage)
-and adds `swing: "none"` for passageways. See
+and adds `swing: "none"` for passageways. Version 2.2.1
+replaces that full-width hallway with the typical
+small-house pattern: open living/kitchen south, a short
+central hall in the bedroom wing north. See
 [CHANGELOG.md](CHANGELOG.md) for what changed and what
 was removed.

@@ -163,7 +163,7 @@ def test_sample_plan_has_no_duplicate_rooms(example_files):
     plan_path, _ = example_files
     plan = load_plan(plan_path)
     assert [r.name for r in plan.rooms] == [
-        "Living Room", "Kitchen", "Hallway", "Master Bedroom", "Bathroom", "Bedroom 2", "Garage",
+        "Living Room", "Kitchen", "Hall", "Master Bedroom", "Bathroom", "Bedroom 2", "Garage",
     ]
     xs = [p[0] for p in plan.boundary]
     ys = [p[1] for p in plan.boundary]
@@ -208,8 +208,9 @@ def test_boundary_breaks_at_exterior_door():
 
 
 def test_sample_circulation(example_files):
-    # The sample's circulation contract: a real Hallway, every
-    # bedroom/bathroom door paired with a Hallway door on the same
+    # The sample's circulation contract: a short central Hall in
+    # the bedroom wing (not a corridor across the house), every
+    # bedroom/bathroom door paired with a Hall door on the same
     # segment, the Living-Kitchen passage in both rooms with swing
     # "none", and a front door that is not the Garage door.
     plan_path, _ = example_files
@@ -221,21 +222,27 @@ def test_sample_circulation(example_files):
 
     living = door_map(by_name["Living Room"])
     kitchen = door_map(by_name["Kitchen"])
-    hallway = door_map(by_name["Hallway"])
+    hall = door_map(by_name["Hall"])
+    # The hall is a small room in the bedroom wing, not a strip
+    # across the house: 6 ft wide, 7 ft deep, bedrooms 13 ft deep.
+    assert by_name["Hall"].rect == [14.0, 14.0, 6.0, 7.0]
+    assert by_name["Master Bedroom"].rect[3] == 13.0
+    assert by_name["Bedroom 2"].rect[3] == 13.0
     # Front door: west wall of the Living Room, into the house.
     assert living[((0.0, 6.0), (0.0, 9.0))] == "in"
     # Open passage: in both rooms, no leaf, no arc.
     passage = ((20.0, 6.0), (20.0, 9.0))
     assert living[passage] == "none" and kitchen[passage] == "none"
-    # Every north room has exactly one door, and it is a Hallway door.
+    # Every bedroom-wing room has exactly one door, and it is a
+    # Hall door, swinging into that room.
     for name in ("Master Bedroom", "Bathroom", "Bedroom 2"):
         doors = door_map(by_name[name])
         assert len(doors) == 1, name
         pos, swing = next(iter(doors.items()))
-        assert swing == "in" and pos in hallway, (name, pos)
-    # Hallway has its Living Room entry plus those three doors.
-    assert len(hallway) == 4
-    assert ((8.0, 15.0), (11.0, 15.0)) in hallway
+        assert swing == "in" and pos in hall, (name, pos)
+    # Hall has its Living Room entry plus those three doors.
+    assert len(hall) == 4
+    assert ((15.0, 14.0), (18.0, 14.0)) in hall
     # No door is shared between two bedrooms/bathroom directly.
     north = ["Master Bedroom", "Bathroom", "Bedroom 2"]
     for i, a in enumerate(north):

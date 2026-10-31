@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.2.1 — 2026-10-31
+
+Sample plan rebuilt on a typical small single-story
+pattern. No code change, only the sample and its tests.
+
+- The v2.2.0 full-width hallway is gone: it was 128 sq
+  ft of corridor that shrank the bedrooms to 8 ft deep.
+  Typical small plans keep circulation to a minimum and
+  cluster bedrooms on one side of the house, with living
+  and kitchen flowing together on the other.
+- New layout: open Living Room (20 x 14) and Kitchen
+  (12 x 14) across the south half, with an open passage
+  between them; a short central Hall (6 x 7, 42 sq ft)
+  in the bedroom wing, entered from the Living Room,
+  serving a Master Bedroom (14 x 13, 182 sq ft), a
+  Bedroom 2 (12 x 13, 156 sq ft), and a hall Bathroom
+  (6 x 6, 36 sq ft) at the end of the hall. No room is
+  reached through another room. Front door into the
+  Living Room (west wall), Garage door into the Living
+  Room, Garage door to the driveway.
+- The Bathroom door sits at the west end of its wall
+  (2.5 ft wide) so its leaf and arc stay clear of the
+  room's centred label — a centred 3 ft door in a 6 ft
+  room drew straight through it.
+
 ## 2.2.0 — 2026-10-31
 
 The sample plan is now a house you can actually walk
