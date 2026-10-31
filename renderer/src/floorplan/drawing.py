@@ -86,16 +86,17 @@ def parse_paper_size(size_str, orientation="vertical"):
     )
 
 
-def _is_axis_aligned_rectangle(boundary):
-    """True when 4 points form an axis-aligned rectangle, any order."""
-    if len(boundary) != 4:
-        return False
-    xs = {p[0] for p in boundary}
-    ys = {p[1] for p in boundary}
-    return len(xs) == 2 and len(ys) == 2
-
-
 def draw_boundary(ax, boundary, style, scale_factor, offset_x=0, offset_y=0):
+    """Draw the boundary polygon plus overall dimension labels.
+
+    The labels are bounding-box dimensions (overall width/height),
+    not per-edge lengths, and are placed outside the box (below the
+    bottom edge, left of the left edge). That holds for any shape:
+    the old code assumed a 4-point rectangle in BL, BR, TR, TL
+    order and labelled a trapezoid's corners wrong, and the sample
+    plan's rectangle labelled an edge that was actually interior
+    once the Garage sat outside it.
+    """
     if not boundary:
         return
     wall_style = style["line_styles"]["exterior_wall"]
@@ -105,24 +106,19 @@ def draw_boundary(ax, boundary, style, scale_factor, offset_x=0, offset_y=0):
     ax.add_patch(patches.Polygon(
         scaled_boundary, closed=True,
         linewidth=wall_style["thickness"], edgecolor=wall_style["color"], facecolor="none"))
-    if _is_axis_aligned_rectangle(boundary):
-        # Bounding-box labels, order-independent. A 4-point
-        # trapezoid used to get wrong labels here (the old code
-        # assumed BL, BR, TR, TL order); non-rectangles get no
-        # dimension labels rather than wrong ones.
-        xs = [p[0] for p in boundary]
-        ys = [p[1] for p in boundary]
-        min_x, max_x = min(xs), max(xs)
-        min_y, max_y = min(ys), max(ys)
-        units = style["settings"].get("units", "ft")
-        ax.text((min_x + max_x) / 2 * scale_factor + offset_x,
-                min_y * scale_factor + offset_y - 10,
-                f"{max_x - min_x} {units}", ha="center", va="bottom",
-                fontsize=10, color=wall_style["color"])
-        ax.text(min_x * scale_factor + offset_x - 10,
-                (min_y + max_y) / 2 * scale_factor + offset_y,
-                f"{max_y - min_y} {units}", ha="right", va="center",
-                fontsize=10, color=wall_style["color"], rotation=90)
+    xs = [p[0] for p in boundary]
+    ys = [p[1] for p in boundary]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    units = style["settings"].get("units", "ft")
+    ax.text((min_x + max_x) / 2 * scale_factor + offset_x,
+            min_y * scale_factor + offset_y - 10,
+            f"{max_x - min_x} {units}", ha="center", va="bottom",
+            fontsize=10, color=wall_style["color"])
+    ax.text(min_x * scale_factor + offset_x - 10,
+            (min_y + max_y) / 2 * scale_factor + offset_y,
+            f"{max_y - min_y} {units}", ha="right", va="center",
+            fontsize=10, color=wall_style["color"], rotation=90)
 
 
 def draw_north_arrow(ax, style, scale_factor, page_width_points, page_height_points):
@@ -131,17 +127,23 @@ def draw_north_arrow(ax, style, scale_factor, page_width_points, page_height_poi
     The arrow is page-relative and fixed-size: the original placed it
     25 points below the top edge and 75 points tall, so both arrow
     and label fell outside the page and were clipped from the SVG.
+    Note the label position: a FancyArrow's tip is at
+    ``arrow_y + length + head_length``, not at ``arrow_y + length``
+    — the old label sat at the shaft/head join, centred on the black
+    head, so the black "N" was invisible against it. The label now
+    sits 5 points above the actual tip.
     """
     if not style["settings"].get("north_arrow", False):
         return
     arrow_x = page_width_points - 50
     arrow_y = page_height_points - 100
     length = 50
+    head_length = min(1 * scale_factor, 20)
     ax.add_patch(FancyArrow(
         arrow_x, arrow_y, 0, length,
         width=0.5 * scale_factor, head_width=1.5 * scale_factor,
-        head_length=min(1 * scale_factor, 20), color="black"))
-    ax.text(arrow_x, arrow_y + length + 5, "N",
+        head_length=head_length, color="black"))
+    ax.text(arrow_x, arrow_y + length + head_length + 5, "N",
             ha="center", va="bottom", fontsize=12, fontweight="bold")
 
 

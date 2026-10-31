@@ -6,9 +6,16 @@
 
 # Boundary: Defines the outer perimeter of the floor plan as a list of [x, y] points.
 # The boundary should form a closed shape (first and last points connect).
+# It follows the union outline of the rooms, so the Garage is inside
+# it: the southeast corner below the Kitchen (x 20-32, y -10-0) is
+# outside the house and is deliberately not enclosed. A rectangle
+# here used to leave the Garage outside the boundary, so its bottom
+# edge cut through the middle of the plan.
 boundary:
-  - [0, 0]      # Bottom-left corner
-  - [32, 0]     # Bottom-right corner
+  - [0, -10]    # Garage bottom-left corner
+  - [20, -10]   # Garage bottom-right corner
+  - [20, 0]     # Step in at the Garage / Living Room line
+  - [32, 0]     # Bottom-right corner (Kitchen)
   - [32, 27]    # Top-right corner
   - [0, 27]     # Top-left corner
 
@@ -61,14 +68,10 @@ rooms:
     windows:
       - pos: [[32, 18], [32, 24]] # Side window
 
-  - name: Hallway
-    rect: [15, 15, 7, 12]  # Overlaps bathroom for connectivity
-    # Hallway typically has no windows, just doors to rooms
-    doors:
-      - pos: [[15, 18], [15, 21]] # To master bedroom
-        swing: in  # Swing inward
-      - pos: [[22, 18], [22, 21]] # To bedroom 2
-        swing: in  # Swing inward
+  # No separate Hallway room: an earlier version gave it the exact
+  # rectangle of the Bathroom, so the two rooms (labels, walls,
+  # doors) were drawn on top of each other. The Master Bedroom and
+  # Bedroom 2 doors above are the rooms' own doors and remain.
 
   - name: Garage
     rect: [0, -10, 20, 10]  # Below living room (negative y for basement/garage)

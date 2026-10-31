@@ -93,7 +93,84 @@ def test_north_arrow_stays_on_page(example_files):
     assert [t.get_text() for t in ax.texts] == ["N"]
     x, y = ax.texts[0].get_position()
     assert 0 <= x <= 850 and 0 <= y <= 1100
+    # Regression: the "N" used to sit at the shaft/head join, centred
+    # on the black arrowhead, so it was invisible. It must sit
+    # above the arrow's actual tip (shaft + head length).
+    assert y > vertices.max(axis=0)[1]
     plt.close(fig)
+
+
+def test_door_leaf_and_arc():
+    # Regression: horizontal arcs were offset 90 degrees (a
+    # bottom-wall door swinging in drew theta 90-144, north-west of
+    # its hinge, instead of 0-90), vertical arcs were truncated to
+    # 54 degrees, and a line along the wall filled the wall gap, so
+    # doors read as stray curves. Now every door is one leaf line
+    # plus one full quarter-circle arc, meeting at the hinge and
+    # at the wall endpoint.
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Arc
+
+    cases = [
+        # (room rect, door pos, swing, expected theta, expected leaf end)
+        ([0, 0, 20, 15], [[10, 0], [13, 0]], "in", (0, 90), (250, 75)),
+        ([0, 0, 20, 15], [[10, 0], [13, 0]], "out", (270, 360), (250, -75)),
+        ([0, 0, 20, 15], [[10, 15], [13, 15]], "in", (270, 360), (250, 300)),
+        ([0, 0, 20, 15], [[10, 15], [13, 15]], "out", (0, 90), (250, 450)),
+        ([0, 0, 20, 15], [[0, 6], [0, 9]], "in", (0, 90), (75, 150)),
+        ([0, 0, 20, 15], [[0, 6], [0, 9]], "out", (90, 180), (-75, 150)),
+        ([0, 0, 20, 15], [[20, 6], [20, 9]], "in", (90, 180), (425, 150)),
+        ([0, 0, 20, 15], [[20, 6], [20, 9]], "out", (0, 90), (575, 150)),
+    ]
+    for rect, pos, swing, theta, leaf_end in cases:
+        fig, ax = plt.subplots()
+        room = Room("R", rect)
+        room.doors = [{"pos": pos, "swing": swing}]
+        room._draw_doors(ax, {}, 25, 0, 0)
+        arcs = [p for p in ax.patches if isinstance(p, Arc)]
+        assert len(arcs) == 1, (rect, pos, swing)
+        assert (arcs[0].theta1, arcs[0].theta2) == theta, (rect, pos, swing)
+        # Exactly one line: the open leaf. No along-wall line.
+        assert len(ax.lines) == 1, (rect, pos, swing)
+        line = ax.lines[0]
+        hinge = (min(pos[0][0], pos[1][0]) * 25, min(pos[0][1], pos[1][1]) * 25)
+        assert (line.get_xdata()[0], line.get_ydata()[0]) == hinge
+        assert (line.get_xdata()[1], line.get_ydata()[1]) == leaf_end
+        plt.close(fig)
+
+
+def test_boundary_l_shaped_labels():
+    import matplotlib.pyplot as plt
+
+    from floorplan.drawing import draw_boundary
+
+    style = {
+        "settings": {"units": "feet"},
+        "line_styles": {"exterior_wall": {"thickness": 4.0, "color": "black"}},
+    }
+    fig, ax = plt.subplots()
+    draw_boundary(ax, [[0.0, -10.0], [20.0, -10.0], [20.0, 0.0],
+                       [32.0, 0.0], [32.0, 27.0], [0.0, 27.0]],
+                  style, 25, 0, 0)
+    # Overall bounding dimensions, not per-edge lengths.
+    assert [t.get_text() for t in ax.texts] == ["32.0 feet", "37.0 feet"]
+    plt.close(fig)
+
+
+def test_sample_plan_has_no_duplicate_rooms(example_files):
+    # Regression for the sample that shipped with a Hallway room
+    # identical to the Bathroom, and a Garage outside the boundary.
+    plan_path, _ = example_files
+    plan = load_plan(plan_path)
+    assert [r.name for r in plan.rooms] == [
+        "Living Room", "Kitchen", "Master Bedroom", "Bathroom", "Bedroom 2", "Garage",
+    ]
+    xs = [p[0] for p in plan.boundary]
+    ys = [p[1] for p in plan.boundary]
+    for room in plan.rooms:
+        x, y, w, h = room.rect
+        assert min(xs) <= x and x + w <= max(xs)
+        assert min(ys) <= y and y + h <= max(ys)
 
 
 def test_render_editor_plan(tmp_path, example_files):

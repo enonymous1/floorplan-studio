@@ -291,7 +291,29 @@ class Room:
                 color=line_color, rotation=90)
 
     def _draw_doors(self, ax, style, scale_factor, offset_x, offset_y):
-        wall_thickness = style["line_styles"]["interior_wall"]["thickness"]
+        """Draw each door as an open leaf plus its swing arc.
+
+        The hinge is the minimum-coordinate endpoint of the segment
+        (bottom end for a vertical door, left end for a horizontal
+        one — the plan format carries no hinge field, so this is the
+        convention). The leaf is a straight line of ``door_width``
+        from the hinge, perpendicular to the wall, on the swing side;
+        the arc is the full quarter circle from the wall direction
+        to the leaf, so leaf tip, arc end, and wall endpoint all
+        meet. Two previous bugs are fixed here at once:
+
+        - Horizontal arcs were offset by 90 degrees (e.g. a
+          bottom-wall door swinging in drew theta 90-144, i.e.
+          north-west of the hinge, instead of 0-90), so they
+          floated away from their doors — the Garage door's arc
+          landed in the title block.
+        - Vertical arcs were the right quadrant but truncated to
+          a stylised 54 degrees, and a line was plotted along
+          the wall, filling back in the wall gap the wall code
+          had just cut. Only the arc was visible, so doors read
+          as stray curves. The along-wall line is gone: the gap
+          stays open and the leaf shows the swing.
+        """
         # Same shared tolerance as the wall gaps, in scaled units.
         # Wall detection here used exact float equality, which only
         # held because both sides were computed by identical
@@ -309,57 +331,33 @@ class Room:
             sy2 = y2 * scale_factor + offset_y
 
             door_width = abs(sx2 - sx1) if abs(sy1 - sy2) < 1e-6 else abs(sy2 - sy1)
-            door_thickness = wall_thickness * 0.3
+            swing_in = door.get("swing", "in") == "in"
 
             if abs(sx1 - sx2) < 1e-6:  # Vertical door
                 is_left_wall = abs(sx1 - (self.rect[0] * scale_factor + offset_x)) < tol
-                if is_left_wall:
-                    door_rect = patches.Rectangle(
-                        (sx1, min(sy1, sy2)), door_thickness, door_width,
-                        linewidth=1.0, edgecolor="black", facecolor="white")
-                else:
-                    door_rect = patches.Rectangle(
-                        (sx1 - door_thickness, min(sy1, sy2)), door_thickness, door_width,
-                        linewidth=1.0, edgecolor="black", facecolor="white")
-                ax.add_patch(door_rect)
-                ax.plot([sx1, sx1], [sy1, sy2], color="black", linewidth=1.5)
-                swing_in = door.get("swing", "in") == "in"
-                center_y = min(sy1, sy2)
-                center_x = sx1
-                arc_radius = door_width
-                arc_angle = 54  # stylised swing arc, deliberately less than a full 90-degree swing
-                if is_left_wall:
-                    theta = (0, arc_angle) if swing_in else (180 - arc_angle, 180)
-                else:
-                    theta = (180 - arc_angle, 180) if swing_in else (0, arc_angle)
-                ax.add_patch(patches.Arc((center_x, center_y), arc_radius * 2, arc_radius * 2,
-                                         angle=0, theta1=theta[0], theta2=theta[1],
-                                         color="black", linewidth=2.0))
+                hinge_x, hinge_y = sx1, min(sy1, sy2)
+                # Wall direction from the hinge is north (90 deg).
+                # Interior is east of a left wall, west of a right
+                # wall; swing "in" points the leaf into the room.
+                leaf_east = is_left_wall if swing_in else not is_left_wall
+                leaf_end = (hinge_x + (door_width if leaf_east else -door_width), hinge_y)
+                theta = (0, 90) if leaf_east else (90, 180)
             elif abs(sy1 - sy2) < 1e-6:  # Horizontal door
                 is_bottom_wall = abs(sy1 - (self.rect[1] * scale_factor + offset_y)) < tol
-                if is_bottom_wall:
-                    door_rect = patches.Rectangle(
-                        (min(sx1, sx2), sy1), door_width, door_thickness,
-                        linewidth=1.0, edgecolor="black", facecolor="white")
-                else:
-                    door_rect = patches.Rectangle(
-                        (min(sx1, sx2), sy1 - door_thickness), door_width, door_thickness,
-                        linewidth=1.0, edgecolor="black", facecolor="white")
-                ax.add_patch(door_rect)
-                ax.plot([sx1, sx2], [sy1, sy1], color="black", linewidth=1.5)
-                swing_in = door.get("swing", "in") == "in"
-                center_x = min(sx1, sx2)
-                center_y = sy1
-                arc_radius = door_width
-                arc_angle = 54  # stylised swing arc, deliberately less than a full 90-degree swing
-                if is_bottom_wall:
-                    theta = (90, 90 + arc_angle) if swing_in else (270 - arc_angle, 270)
-                else:
-                    theta = (270 - arc_angle, 270) if swing_in else (90, 90 + arc_angle)
-                ax.add_patch(patches.Arc((center_x, center_y), arc_radius * 2, arc_radius * 2,
-                                         angle=0, theta1=theta[0], theta2=theta[1],
-                                         color="black", linewidth=2.0))
-            # Diagonal doors are rejected by the loader; nothing to draw here.
+                hinge_x, hinge_y = min(sx1, sx2), sy1
+                # Wall direction from the hinge is east (0 deg).
+                # Interior is north of a bottom wall, south of a
+                # top wall; swing "in" points the leaf into the room.
+                leaf_north = is_bottom_wall if swing_in else not is_bottom_wall
+                leaf_end = (hinge_x, hinge_y + (door_width if leaf_north else -door_width))
+                theta = (0, 90) if leaf_north else (270, 360)
+            else:
+                continue  # Diagonal doors are rejected by the loader.
+            ax.plot([hinge_x, leaf_end[0]], [hinge_y, leaf_end[1]],
+                    color="black", linewidth=1.5)
+            ax.add_patch(patches.Arc((hinge_x, hinge_y), door_width * 2, door_width * 2,
+                                     angle=0, theta1=theta[0], theta2=theta[1],
+                                     color="black", linewidth=2.0))
 
     def _draw_windows(self, ax, style, scale_factor, offset_x, offset_y, boundary=None):
         """Draw windows, only when they lie on an exterior wall."""

@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.1.1 — 2026-10-31
+
+Render fixes for the artifacts in the sample render, plus the
+sample plan itself. No plan-format change.
+
+- **Doors are doors now.** `_draw_doors` draws an open leaf
+  plus a full quarter-circle arc, with the hinge at the
+  minimum-coordinate endpoint. Previously horizontal arcs
+  were offset 90 degrees (a bottom-wall door swinging in
+  drew theta 90-144, north-west of its hinge, instead of
+  0-90 — the Garage door's arc landed in the title block),
+  vertical arcs were truncated to a stylised 54 degrees,
+  and a line plotted along the wall filled the wall gap
+  back in, so only a stray-looking arc remained.
+- **North arrow "N" visible.** A FancyArrow's tip is at
+  shaft length + head length; the label sat at shaft length
+  only, centred on the black head, so it was invisible. It
+  now sits 5 points above the actual tip.
+- **Boundary labels are bounding-box dimensions** for any
+  shape, placed outside the box — not corner labels that
+  were wrong for non-rectangles.
+- **Sample plan fixed.** The Hallway room (identical
+  rectangle to the Bathroom, so labels/walls/doors
+  double-drew) is removed; its doors were duplicates of
+  the Master Bedroom and Bedroom 2 doors, which remain.
+  The boundary is now the L-shaped union outline of the
+  rooms, enclosing the Garage; the empty southeast corner
+  is outside the house and not enclosed. `docs/demo.svg`
+  and the JSON twin are regenerated from the fixed sample.
+- Known minor, left alone: room dimensions are drawn
+  inside rooms, so a door arc can cross a dimension line
+  (the Master Bedroom 12 ft line sits behind its door
+  arc). Moving dimensions outside is a separate change.
+
 ## 2.1.0 — 2026-10-31
 
 Staff-review fixes, on top of the 2.0.0 merge. Nothing here

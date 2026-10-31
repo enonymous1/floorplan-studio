@@ -456,6 +456,10 @@ included. Version 2.1.0 applies the staff-review fixes:
 style validation with clean CLI errors, a shared
 editor/renderer wall tolerance, a bounded undo history,
 the plan-format JSON Schema with a CI contract job, and the
-version single-sourced from `pyproject.toml`. See
-[CHANGELOG.md](CHANGELOG.md) for what changed and what was
-removed.
+version single-sourced from `pyproject.toml`. Version
+2.1.1 fixes the sample render: doors draw as a leaf plus a
+full quarter-circle arc, the north-arrow "N" sits above the
+arrow tip, and the sample plan no longer has a Hallway
+duplicating the Bathroom or a Garage outside the boundary.
+See [CHANGELOG.md](CHANGELOG.md) for what changed and what
+was removed.
