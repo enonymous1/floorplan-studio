@@ -340,7 +340,8 @@ name: Pages
 on:
   push:
     branches: [main]
-    paths: ['editor/**']
+    paths: ['editor/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
 permissions:
   contents: read
   pages: write
@@ -356,6 +357,23 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+      - name: Install editor dependencies
+        working-directory: editor
+        run: npm ci
+      - name: Test editor
+        working-directory: editor
+        run: npm test
+      - name: Check editor syntax
+        working-directory: editor
+        run: npm run check
+      - name: Build editor CSS
+        working-directory: editor
+        run: npm run build:css
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -369,8 +387,13 @@ deployment → Source: GitHub Actions. Open the published
 URL, draw a room, and Export JSON to smoke-test the
 deployment — the editor has no server component, so a
 successful page load plus one export is the whole check.
-Keep the workflow's path filter scoped to `editor/**` so
-renderer-only changes do not redeploy the site.
+Keep the workflow's path filter scoped to `editor/**`
+(plus the workflow file itself, so its first push
+deploys) so renderer-only changes do not redeploy the
+site. The deploy is gated on the editor's test, syntax
+check, and CSS build, and the deployed stylesheet is
+freshly built in the workflow, not just the committed
+`dist/styles.css`.
 
 ### Renderer to PyPI
 

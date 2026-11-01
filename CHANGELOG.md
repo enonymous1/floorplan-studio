@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- GitHub Pages workflow for the editor
+  (`.github/workflows/pages.yml`, as documented in the
+  README's Deployment section): on push to `main`
+  touching `editor/**` or the workflow itself, or on
+  manual dispatch, it runs the editor's test, syntax
+  check, and CSS build, then deploys `editor/` via
+  `configure-pages` / `upload-pages-artifact` /
+  `deploy-pages`. No version bump: this is repo
+  automation, not shipped code. One-time setup after
+  push: Settings → Pages → Source: GitHub Actions.
+
 ## 2.2.3 — 2026-11-01
 
 Sample plan rebuilt after the reference plan the user

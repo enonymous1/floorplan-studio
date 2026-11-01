@@ -1,0 +1,51 @@
+name: Pages
+on:
+  push:
+    branches: [main]
+    # The workflow file itself is included so the first push
+    # of this workflow deploys the site; editor-only pushes
+    # are the normal trigger, and renderer-only changes do
+    # not redeploy the site.
+    paths: ['editor/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+      # Gate the deploy on the editor's own gates, and build
+      # the CSS here so the deployed stylesheet is freshly
+      # built, not just whatever dist/styles.css is committed.
+      - name: Install editor dependencies
+        working-directory: editor
+        run: npm ci
+      - name: Test editor
+        working-directory: editor
+        run: npm test
+      - name: Check editor syntax
+        working-directory: editor
+        run: npm run check
+      - name: Build editor CSS
+        working-directory: editor
+        run: npm run build:css
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: editor
+      - uses: actions/deploy-pages@v4
+        id: deployment
