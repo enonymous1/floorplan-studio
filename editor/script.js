@@ -724,7 +724,7 @@ document.getElementById('load-sample-btn').addEventListener('click', () => {
         return res.text();
     }).then(loadPlanFromJson).catch((err) => {
         alert(`Could not load the sample plan: ${err.message}\n\n`
-            + 'If you opened the editor from a file, serve it with a static server instead, '
+            + 'If you opened the editor from a file, run a local server instead, '
             + 'or use Import JSON with examples/floor_plan.json from the repo.');
     });
 });
