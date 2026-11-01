@@ -254,6 +254,17 @@ class Room:
         line_thickness = dim_settings.get("line_thickness", 0.5)
         position = dim_settings.get("position", "outside")
 
+        # Narrow-room exception: with dimensions drawn inside, the
+        # vertical dimension text sits at the room's right edge,
+        # centred vertically — exactly where the centred room
+        # label sits. In a room narrower than ~90 points the two
+        # overlap (the sample's 4 ft Hall at 1/8" scale rendered
+        # its "11.5 ft" on top of "Hall"). Move the vertical
+        # dimension text to the bottom of the line for such
+        # rooms, clear of both the label (centre) and the
+        # horizontal dimension text (top).
+        narrow_inside = position == "inside" and scaled_w < 90
+        vert_text_y = None
         if position == "inside":
             horiz_y = scaled_y + scaled_h - line_offset
             vert_x = scaled_x + scaled_w - line_offset
@@ -261,6 +272,8 @@ class Room:
             vert_text_x = vert_x - text_offset
             horiz_text_va = "top"
             vert_text_ha = "right"
+            if narrow_inside:
+                vert_text_y = scaled_y + line_offset + text_offset + font_size
         else:
             horiz_y = scaled_y + scaled_h + line_offset
             vert_x = scaled_x + scaled_w + line_offset
@@ -286,7 +299,9 @@ class Room:
         ax.plot([vert_x - tick_length / 2, vert_x + tick_length / 2],
                 [scaled_y + scaled_h, scaled_y + scaled_h],
                 color=line_color, linewidth=line_thickness)
-        ax.text(vert_text_x, scaled_y + scaled_h / 2, f"{h:.1f} ft",
+        if vert_text_y is None:
+            vert_text_y = scaled_y + scaled_h / 2
+        ax.text(vert_text_x, vert_text_y, f"{h:.1f} ft",
                 ha=vert_text_ha, va="center", fontsize=font_size,
                 color=line_color, rotation=90)
 

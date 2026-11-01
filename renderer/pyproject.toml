@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "floorplan-studio"
-version = "2.2.2"
+version = "2.2.3"
 description = "Render floor plans from YAML/JSON to print-ready SVG, PNG, or PDF."
 readme = "README.md"
 license = "MIT"

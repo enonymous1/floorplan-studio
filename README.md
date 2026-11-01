@@ -475,5 +475,11 @@ front door, kitchen/dining open at the rear, a primary
 suite (bedroom, closet, bath) in the west wing, and a
 single-loaded hall serving the east bedrooms — drawn at
 1/8" on a landscape sheet so the 74 ft house fits its
-page. See [CHANGELOG.md](CHANGELOG.md) for what changed
-and what was removed.
+page. Version 2.2.3 rebuilds the sample again, after
+the reference plan supplied with it (68 x 34.5 ft):
+a small hall junction instead of a long dead-end
+hallway, a master bedroom with separate doors to its
+closet and its bath instead of a closet-to-bath
+series, and a 14 ft open passage between the Great
+Room and Kitchen/Dining. See [CHANGELOG.md](CHANGELOG.md)
+for what changed and what was removed.

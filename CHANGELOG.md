@@ -1,5 +1,58 @@
 # Changelog
 
+## 2.2.3 — 2026-11-01
+
+Sample plan rebuilt after the reference plan the user
+supplied (68 ft x 34 ft 6 in), fixing the two
+complaints about v2.2.2, plus a small renderer fix the
+new sample exposed. No plan-format change.
+
+- No long dead-end hallway. v2.2.2's Hall was a
+  5 x 24 ft spur off the Living Room, ending at
+  Bedroom 2. The reference's hall is a small 4 x 11.5
+  ft junction east of the Bathroom, between Bedroom 3
+  (north) and Bedroom 2 (south), with five openings:
+  north to Bedroom 3, south to Bedroom 2, west to the
+  Bathroom, east to the Great Room (a door), and east
+  to the Kitchen/Dining (a cased opening). It connects
+  the Great Room to the Kitchen, so it is a through
+  route, not a dead end.
+- No walking through a closet to reach a bathroom.
+  v2.2.2 ran Bedroom -> Closet -> Bath in series. The
+  Master Bedroom now has two separate doors on its
+  north wall, one to the Closet and one to the Master
+  Bath; both are directly off the bedroom and share
+  no door with each other.
+- Layout (68 x 34.5 ft, 1,518 sq ft living): Great
+  Room 18 x 19 ft, entry from the Covered Porch
+  (south wall); Kitchen/Dining 18 x 15.5 ft, open to
+  the Great Room through a 14 ft passage (the
+  reference has no wall there at all) and a patio
+  door north to the Patio; Bedroom 3 12 x 11.5 ft,
+  Bathroom 8 x 11.5 ft, Bedroom 2 12 x 11.5 ft, all
+  off the Hall; Master Bedroom 14 x 12.5 ft, Closet
+  5 x 13.5 ft, Master Bath 9 x 13.5 ft (interior, as
+  in the reference — no exterior window); Laundry
+  14 x 8.5 ft, entered from the Kitchen and opening
+  to the Garage; Garage 24 x 24 ft, north-aligned,
+  with a 16 ft double vehicle door on its south
+  wall. The Covered Porch and Patio are exterior and
+  are not rooms here. Room sizes are rounded to whole
+  or half feet so the rectangles tile exactly; the
+  reference's labels are interior clear sizes.
+- Renderer fix: with dimensions drawn inside, the
+  vertical dimension text sat at a narrow room's
+  right edge, centred vertically — on top of the
+  centred room label (the 4 ft Hall rendered its
+  "11.5 ft" over "Hall"). Rooms narrower than 90
+  points now put that text near the bottom of the
+  line instead, clear of the label and of the
+  horizontal dimension text at the top. Wide rooms
+  are unchanged. The sample's long room name was
+  also shortened ("Walk-in Closet" -> "Closet") so
+  its label fits its 5 ft room instead of spilling
+  into the Bath.
+
 ## 2.2.2 — 2026-10-31
 
 Sample plan rebuilt again, this time after a published

@@ -163,9 +163,9 @@ def test_sample_plan_has_no_duplicate_rooms(example_files):
     plan_path, _ = example_files
     plan = load_plan(plan_path)
     assert [r.name for r in plan.rooms] == [
-        "Living Room", "Kitchen", "Dining Room", "Hall", "Primary Bedroom",
-        "Walk-in Closet", "Primary Bath", "Mudroom", "Bedroom 2", "Bathroom",
-        "Bedroom 3", "Garage",
+        "Great Room", "Kitchen/Dining", "Hall", "Bedroom 3", "Bathroom",
+        "Bedroom 2", "Master Bedroom", "Closet", "Master Bath", "Laundry",
+        "Garage",
     ]
     xs = [p[0] for p in plan.boundary]
     ys = [p[1] for p in plan.boundary]
@@ -210,16 +210,18 @@ def test_boundary_breaks_at_exterior_door():
 
 
 def test_sample_circulation(example_files):
-    # The sample's circulation contract, after the split-bedroom
-    # ranch pattern: a single-loaded Hall in the east wing
-    # (entered from the Living Room, serving Bedroom 3, the
-    # shared Bathroom and Bedroom 2); a primary suite that runs
-    # Bedroom -> Closet -> Bath, entered from the Living Room;
-    # garage entry through the Mudroom; open Living-Kitchen and
-    # Living-Dining passages; a front door on the street wall
-    # and a 16 ft double garage door, neither of them a 3 ft
-    # swing door. Every shared door is paired with the opposite
-    # swing, and every bedroom has an exterior window.
+    # The sample's circulation contract, after the reference
+    # plan: a small Hall junction east of the Bathroom (not a
+    # long dead-end corridor) that connects the Great Room to
+    # the Kitchen/Dining and serves Bedroom 3, the Bathroom and
+    # Bedroom 2; a Master Bedroom with two separate north-wall
+    # doors, one to the Closet and one to the Master Bath, so
+    # neither is reached through the other; a 14 ft open
+    # passage between the Great Room and Kitchen/Dining; a
+    # front door from the Covered Porch, a patio door from
+    # the Kitchen, and a 16 ft double garage door. Every
+    # shared door is paired with the opposite swing, and
+    # every bedroom has an exterior window.
     plan_path, _ = example_files
     plan = load_plan(plan_path)
     by_name = {r.name: r for r in plan.rooms}
@@ -230,58 +232,108 @@ def test_sample_circulation(example_files):
     def window_set(room):
         return {tuple(map(tuple, w["pos"])) for w in room.windows}
 
-    living = door_map(by_name["Living Room"])
-    kitchen = door_map(by_name["Kitchen"])
-    dining = door_map(by_name["Dining Room"])
+    great = door_map(by_name["Great Room"])
+    kitchen = door_map(by_name["Kitchen/Dining"])
     hall = door_map(by_name["Hall"])
     garage = door_map(by_name["Garage"])
-    # Footprint: 74 ft wide, 36 ft deep; Garage 22 x 20 ft.
-    assert by_name["Living Room"].rect == [36.0, 0.0, 22.0, 18.0]
-    assert by_name["Garage"].rect == [0.0, 0.0, 22.0, 20.0]
-    assert by_name["Hall"].rect == [58.0, 12.0, 5.0, 24.0]
-    # Front door: south (street) wall of the Living Room, in.
-    assert living[((45.0, 0.0), (48.0, 0.0))] == "in"
+    # Footprint: 68 ft wide, 34.5 ft deep; Garage 24 x 24 ft,
+    # north-aligned, so the boundary steps in at y = 10.5.
+    assert by_name["Great Room"].rect == [12.0, 0.0, 18.0, 19.0]
+    assert by_name["Garage"].rect == [44.0, 10.5, 24.0, 24.0]
+    assert by_name["Hall"].rect == [8.0, 11.5, 4.0, 11.5]
+    assert plan.boundary == [
+        [0.0, 0.0], [44.0, 0.0], [44.0, 10.5],
+        [68.0, 10.5], [68.0, 34.5], [0.0, 34.5],
+    ]
+    # Front door: south (street) wall of the Great Room, in,
+    # from the Covered Porch.
+    assert great[((23.0, 0.0), (26.0, 0.0))] == "in"
+    # Patio door: north wall of the Kitchen/Dining, in.
+    assert kitchen[((24.0, 34.5), (27.0, 34.5))] == "in"
     # Double garage door: 16 ft, swing "none", in the Garage only.
-    vehicle = ((3.0, 0.0), (19.0, 0.0))
+    vehicle = ((48.0, 10.5), (64.0, 10.5))
     assert garage[vehicle] == "none"
-    assert vehicle not in living
-    # Open passages: in both rooms, no leaf, no arc.
-    assert living[((40.0, 18.0), (43.0, 18.0))] == "none"
-    assert kitchen[((40.0, 18.0), (43.0, 18.0))] == "none"
-    assert living[((52.0, 18.0), (55.0, 18.0))] == "none"
-    assert dining[((52.0, 18.0), (55.0, 18.0))] == "none"
-    assert kitchen[((47.0, 22.0), (47.0, 25.0))] == "none"
-    assert dining[((47.0, 22.0), (47.0, 25.0))] == "none"
-    # Every secondary-wing room has exactly one door, and it is a
+    assert vehicle not in great
+    # Wide open passage: 14 ft, in both rooms, no leaf, no arc.
+    passage = ((14.0, 19.0), (28.0, 19.0))
+    assert great[passage] == "none" and kitchen[passage] == "none"
+    # Hall is a through junction, not a dead end: it connects
+    # the Great Room (door) to the Kitchen/Dining (passage).
+    assert hall[((12.0, 13.0), (12.0, 16.0))] == "out"
+    assert great[((12.0, 13.0), (12.0, 16.0))] == "in"
+    assert hall[((12.0, 20.0), (12.0, 23.0))] == "none"
+    assert kitchen[((12.0, 20.0), (12.0, 23.0))] == "none"
+    # Every room off the Hall has exactly one door, and it is a
     # Hall door, swinging into that room.
     for name in ("Bedroom 3", "Bathroom", "Bedroom 2"):
         doors = door_map(by_name[name])
         assert len(doors) == 1, name
         pos, swing = next(iter(doors.items()))
         assert swing == "in" and pos in hall, (name, pos)
-    # Hall has its Living Room entry plus those three doors.
-    assert len(hall) == 4
-    assert ((58.0, 14.0), (58.0, 17.0)) in hall
-    # Primary suite: Living -> Bedroom -> Closet -> Bath, each
-    # step paired with the opposite swing.
-    assert door_map(by_name["Primary Bedroom"])[((36.0, 12.0), (36.0, 15.0))] == "in"
-    assert door_map(by_name["Walk-in Closet"])[((23.0, 24.0), (26.0, 24.0))] == "in"
-    assert door_map(by_name["Primary Bath"])[((32.0, 30.0), (35.0, 30.0))] == "in"
-    # Garage entry: Garage -> Mudroom -> Living Room, paired.
-    assert door_map(by_name["Mudroom"])[((22.0, 3.0), (22.0, 6.0))] == "in"
-    assert living[((36.0, 3.0), (36.0, 6.0))] == "in"
+    # Hall has those three doors plus the Great Room door and
+    # the Kitchen/Dining passage.
+    assert len(hall) == 5
+    # Master suite: two separate doors on the Master Bedroom's
+    # north wall, one to the Closet and one to the Bath.
+    master = door_map(by_name["Master Bedroom"])
+    assert master[((31.0, 12.5), (34.0, 12.5))] == "out"
+    assert master[((36.0, 12.5), (39.0, 12.5))] == "out"
+    assert door_map(by_name["Closet"])[((31.0, 12.5), (34.0, 12.5))] == "in"
+    assert door_map(by_name["Master Bath"])[((36.0, 12.5), (39.0, 12.5))] == "in"
+    assert len(door_map(by_name["Closet"])) == 1
+    assert len(door_map(by_name["Master Bath"])) == 1
+    # The Closet and the Bath share no door: neither is
+    # reached through the other.
+    assert not (set(door_map(by_name["Closet"])) & set(door_map(by_name["Master Bath"])))
+    # Garage entry: Kitchen/Dining -> Laundry -> Garage, paired.
+    assert door_map(by_name["Laundry"])[((30.0, 28.0), (30.0, 31.0))] == "in"
+    assert door_map(by_name["Laundry"])[((44.0, 30.0), (44.0, 33.0))] == "out"
+    assert garage[((44.0, 30.0), (44.0, 33.0))] == "in"
     # No door is shared between two bedrooms/bathroom directly.
-    bedrooms = ["Primary Bedroom", "Bathroom", "Bedroom 2", "Bedroom 3"]
+    bedrooms = ["Master Bedroom", "Bathroom", "Bedroom 2", "Bedroom 3"]
     for i, a in enumerate(bedrooms):
         for b in bedrooms[i + 1:]:
             assert not (set(door_map(by_name[a])) & set(door_map(by_name[b]))), (a, b)
-    # Every bedroom has at least one window (egress, and no
-    # bedroom backs onto the Garage with a window into it).
-    for name in ("Primary Bedroom", "Bedroom 2", "Bedroom 3"):
+    # Every bedroom has at least one exterior window.
+    for name in ("Master Bedroom", "Bedroom 2", "Bedroom 3"):
         assert window_set(by_name[name]), name
-    # The Primary Bedroom's window is on the exterior west wall
-    # north of the Garage roofline, not into the Garage.
-    assert ((22.0, 21.0), (22.0, 24.0)) in window_set(by_name["Primary Bedroom"])
+    assert ((4.0, 34.5), (8.0, 34.5)) in window_set(by_name["Bedroom 3"])
+    assert ((4.0, 0.0), (8.0, 0.0)) in window_set(by_name["Bedroom 2"])
+    assert ((34.0, 0.0), (38.0, 0.0)) in window_set(by_name["Master Bedroom"])
+
+
+def test_narrow_room_dimension_text_avoids_label():
+    # Regression for the sample's 4 ft Hall: with dimensions
+    # drawn inside, the vertical dimension text sat at the
+    # room's right edge, centred vertically — on top of the
+    # centred room label. Narrow inside rooms now put that
+    # text near the bottom of the line instead; wide rooms
+    # keep it centred.
+    import matplotlib.pyplot as plt
+
+    from floorplan.room import Room
+
+    style = {"dimension_settings": {
+        "line_offset": 5, "tick_length": 3, "text_offset": 7,
+        "font_size": 6, "line_color": "black", "line_thickness": 0.5,
+        "position": "inside",
+    }}
+
+    def vert_text_y(scaled_w, scaled_h):
+        fig, ax = plt.subplots()
+        room = Room("R", [0, 0, 1, 1])
+        room._draw_dimensions(ax, style, 0, 0, scaled_w, scaled_h, 4.0, 11.5)
+        texts = [t for t in ax.texts if t.get_text() == "11.5 ft"]
+        assert len(texts) == 1
+        y = texts[0].get_position()[1]
+        plt.close(fig)
+        return y
+
+    # Narrow (4 ft at 1/8" scale = 50 points): near the bottom,
+    # well clear of the centred label at scaled_h / 2.
+    assert vert_text_y(50, 143.75) < 143.75 / 2 - 20
+    # Wide (18 ft at 1/8" scale = 225 points): still centred.
+    assert vert_text_y(225, 237.5) == 237.5 / 2
 
 
 def test_render_editor_plan(tmp_path, example_files):
