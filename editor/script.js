@@ -685,7 +685,7 @@ document.getElementById('export-json-btn').addEventListener('click', () => {
 document.getElementById('export-yaml-btn').addEventListener('click', () => {
     downloadFile('floor-plan.yaml', serializePlanYaml(currentPlan()), 'text/yaml');
 });
-// Centre the view on the current canvas contents, zooming out
+// Centre the view on the current canvas objects, zooming out
 // (never in) if they do not fit. Loaded plans need this:
 // plan coordinates are feet, y up, so a plan becomes canvas
 // pixels with y from -height to 0 (north is negative), while
