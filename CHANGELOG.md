@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.2.5 — 2026-11-01
+
+- **Load sample (and Import, and a restored autosave) now
+  centre the view on the plan.** Before this, a loaded
+  plan sat entirely above the viewport: plan coordinates
+  are feet, y up, so a plan becomes canvas pixels with
+  y from -height to 0 (north is negative), while the
+  editor's initial view shows world x/y from 500 onwards
+  (pan -500, scroll 0). Loading the sample therefore
+  showed a blank canvas, not a slightly off-centre house.
+  The new `centerViewOnPlan` (in `editor/script.js`)
+  centres the plan's bounding box (canvas objects, or
+  the boundary if there are none) in the viewport,
+  resetting scroll to 0, and zooms out just enough to
+  fit it with a 40 px margin if it does not fit at the
+  current scale — it never zooms in past the current
+  scale, so a small plan at 100% stays at 100%, and the
+  footer Zoom label is updated to the new scale.
+  Verified by the centring formula at several viewport
+  sizes (the sample's 1360×690 px box lands fully
+  inside the viewport with margin at 800×600, 1300×750,
+  and 1920×1000, at scales 1, 0.5, and 2); a live
+  browser click could not be run from this machine,
+  because the browser tool runs in a separate
+  environment where the local static server's
+  loopback address is not reachable, so the click
+  itself is still for the user to confirm on the
+  Pages site or locally.
+
 ## 2.2.4 — 2026-11-01
 
 - GitHub Pages workflow for the editor

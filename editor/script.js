@@ -92,6 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     restorePlan();
     resizeCanvas();
+    // A restored autosave has the same off-centre problem as a
+    // fresh load (plan y is negative in canvas pixels), so
+    // centre it too; with nothing restored, keep the default
+    // view for drawing from scratch.
+    if (state.objects.length) {
+        centerViewOnPlan();
+        draw();
+    }
     // Footer scale label from the single source (state), not a
     // hardcoded string in index.html that could drift from it.
     const scaleInfo = document.getElementById('scale-info');
@@ -677,10 +685,68 @@ document.getElementById('export-json-btn').addEventListener('click', () => {
 document.getElementById('export-yaml-btn').addEventListener('click', () => {
     downloadFile('floor-plan.yaml', serializePlanYaml(currentPlan()), 'text/yaml');
 });
+// Centre the view on the current canvas contents, zooming out
+// (never in) if they do not fit. Loaded plans need this:
+// plan coordinates are feet, y up, so a plan becomes canvas
+// pixels with y from -height to 0 (north is negative), while
+// the editor's initial view shows world x/y from 500 onwards
+// (pan -500, scroll 0). Without centring, a loaded plan sits
+// entirely above the viewport — out of sight, not just off-centre.
+// Scroll is reset to 0 first, because pan is measured from
+// the canvas origin, not from the scrolled position.
+function centerViewOnPlan() {
+    if (!state.container) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const include = (x1, y1, x2, y2) => {
+        minX = Math.min(minX, x1, x2); maxX = Math.max(maxX, x1, x2);
+        minY = Math.min(minY, y1, y2); maxY = Math.max(maxY, y1, y2);
+    };
+    for (const obj of state.objects || []) {
+        if (!obj || typeof obj !== 'object') continue;
+        if (typeof obj.x1 === 'number' && typeof obj.x2 === 'number'
+            && typeof obj.y1 === 'number' && typeof obj.y2 === 'number') {
+            include(obj.x1, obj.y1, obj.x2, obj.y2);
+        } else if (typeof obj.x === 'number' && typeof obj.y === 'number'
+            && typeof obj.w === 'number' && typeof obj.h === 'number') {
+            include(obj.x, obj.y, obj.x + obj.w, obj.y + obj.h);
+        } else if (typeof obj.x === 'number' && typeof obj.y === 'number') {
+            include(obj.x, obj.y, obj.x, obj.y);
+        }
+    }
+    // No canvas objects (a plan with only a boundary): fall back
+    // to the boundary, converted feet -> canvas pixels (y flip).
+    if (minX === Infinity && Array.isArray(state.planBoundary) && state.planBoundary.length) {
+        const ppf = state.pixelsPerFoot;
+        for (const [bx, by] of state.planBoundary) {
+            include(bx * ppf, -by * ppf, bx * ppf, -by * ppf);
+        }
+    }
+    if (minX === Infinity) return;
+    const vw = state.container.clientWidth;
+    const vh = state.container.clientHeight;
+    if (!vw || !vh) return;
+    const margin = 40;
+    const bw = Math.max(maxX - minX, 1);
+    const bh = Math.max(maxY - minY, 1);
+    // Fit, but never zoom in past the current scale: a small
+    // plan at 100% stays at 100%, a large plan zooms out just
+    // enough to fit with a margin. Scale limits match the
+    // wheel-zoom handler (0.1–5).
+    const fitScale = Math.min((vw - 2 * margin) / bw, (vh - 2 * margin) / bh);
+    const newScale = Math.max(0.1, Math.min(5, Math.min(state.scale, fitScale)));
+    state.scale = newScale;
+    state.container.scrollLeft = 0;
+    state.container.scrollTop = 0;
+    state.panOffsetX = vw / 2 - ((minX + maxX) / 2) * newScale;
+    state.panOffsetY = vh / 2 - ((minY + maxY) / 2) * newScale;
+    const zoomEl = document.getElementById('zoom-level');
+    if (zoomEl) zoomEl.textContent = `Zoom: ${Math.round(newScale * 100)}%`;
+}
 // Shared by Import and Load sample: replacing the canvas with a
-// plan JSON, resetting history to it and autosaving it. (Like
-// Import, this discards the previous canvas — export first if
-// you want to keep it; Undo cannot reach back past a load.)
+// plan JSON, resetting history to it, centring the view on it,
+// and autosaving it. (Like Import, this discards the previous
+// canvas — export first if you want to keep it; Undo cannot
+// reach back past a load.)
 function loadPlanFromJson(text) {
     const { objects, boundary, meta } = planToEditorObjects(parsePlanJson(text));
     state.objects = objects;
@@ -689,6 +755,7 @@ function loadPlanFromJson(text) {
     state.planMeta = meta;
     state.history = [JSON.parse(JSON.stringify(objects))];
     state.historyIndex = 0;
+    centerViewOnPlan();
     updateButtonStates();
     persistPlan();
     draw();

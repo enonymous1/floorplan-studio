@@ -125,7 +125,10 @@ pans; the mouse wheel zooms toward the cursor.
   (`editor/sample-plan.json`, a copy of
   `examples/floor_plan.json`) straight into the canvas,
   no file needed — the way to try the editor on the
-  Pages site. Like Import, it replaces the canvas and
+  Pages site. Loading a plan (Load sample, Import, or
+  a restored autosave) also centres the view on it,
+  zooming out to fit if needed, so a large plan does
+  not land off-screen. Like Import, it replaces the canvas and
   resets Undo history, so export first if you want to
   keep your current work. Work is also autosaved
   to the browser's local storage as a plan, so a refresh
