@@ -68,7 +68,9 @@ def test_render_sample_creates_output_dir(tmp_path, example_files):
     assert main.exists()
     ET.parse(main)  # well-formed SVG
     text = main.read_text(encoding="utf-8")
-    assert "Living Room" in text
+    # The sample's entry room is the Great Room in v2.2.3
+    # (it was "Living Room" in v2.2.2 and earlier).
+    assert "Great Room" in text
     assert "Residential Floor Plan" in text
 
 
