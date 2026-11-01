@@ -94,3 +94,7 @@ jobs:
         run: |
           floorplan convert examples/floor_plan.yaml /tmp/check.json
           diff /tmp/check.json examples/floor_plan.json
+      # The editor's Load sample button fetches this file, so
+      # it must stay identical to the example JSON twin.
+      - name: Editor sample is the example JSON
+        run: diff examples/floor_plan.json editor/sample-plan.json

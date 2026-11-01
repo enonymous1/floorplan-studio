@@ -386,6 +386,43 @@ def test_wall_gap_tolerance_matches_editor(tmp_path, example_files):
     plt.close(fig)
 
 
+def test_shared_wall_gaps_at_single_sided_door(example_files):
+    # A door is a physical opening in a shared wall, so the
+    # wall must gap at it even when only the neighbouring
+    # room listed it — which is exactly what an editor
+    # export produces, since the editor attaches each door
+    # object to one room. Without the global-gaps fix, the
+    # second room's wall drew straight across the gap.
+    import matplotlib.pyplot as plt
+
+    _, style_path = example_files
+    style = load_style(style_path)
+    door = {"pos": [[10.0, 4.0], [10.0, 7.0]], "swing": "in"}
+    boundary = [[0.0, 0.0], [20.0, 0.0], [20.0, 10.0], [0.0, 10.0]]
+    neighbour = Room("B", [10.0, 0.0, 10.0, 10.0])
+    neighbour.doors = []
+
+    def wall_lines_with_all_doors(all_doors):
+        fig, ax = plt.subplots()
+        neighbour.draw(ax, style, 25, 0, 0, boundary, all_doors=all_doors)
+        lines = []
+        for line in ax.lines:
+            xs, ys = line.get_xdata(), line.get_ydata()
+            if len(set(xs)) == 1 and abs(xs[0] - 250.0) < 1.0:
+                lines.append((min(ys), max(ys)))
+        plt.close(fig)
+        return lines
+
+    # With the global list, the shared wall (x = 250 points)
+    # splits around the door (y = 100–175 points): no segment
+    # overlaps the door interval.
+    for lo, hi in wall_lines_with_all_doors([door]):
+        assert not (lo < 175.0 and hi > 100.0), (lo, hi)
+    # Without it, the wall draws solid across the door.
+    assert any(lo < 100.0 and hi > 175.0
+               for lo, hi in wall_lines_with_all_doors(None))
+
+
 def test_window_wall_tolerance_matches_editor():
     # A window 0.005 ft off the exterior boundary still counts as
     # exterior, matching the editor's 0.01 ft attachment tolerance.

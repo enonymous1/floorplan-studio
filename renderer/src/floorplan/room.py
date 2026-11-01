@@ -116,6 +116,7 @@ class Room:
         offset_x: float,
         offset_y: float,
         boundary: Optional[List[List[float]]] = None,
+        all_doors: Optional[List[Dict]] = None,
     ):
         """Draw this room: fill, walls with door gaps, label,
         dimensions, doors with swing arcs, and exterior windows.
@@ -126,6 +127,15 @@ class Room:
         gaps drift off their walls (a previous bug hardcoded 25.0/0
         here). ``boundary`` is used only to decide whether a window
         is exterior; with no boundary every room wall counts.
+        ``all_doors`` is every door in the plan (the caller's
+        list, including this room's own): wall gaps come from it,
+        not just from this room's doors. A door is a physical
+        opening in a shared wall, so a wall must not draw across
+        it just because only the neighbouring room listed it —
+        which is exactly what an editor export produces, since
+        the editor attaches each door object to one room.
+        Leaf and arc drawing stays own-doors-only, so a shared
+        door still draws once (paired listings coincide anyway).
         """
         x, y, w, h = self.rect
         scaled_x = x * scale_factor + offset_x
@@ -134,7 +144,8 @@ class Room:
         scaled_h = h * scale_factor
 
         self._draw_room_shape(
-            ax, style, scaled_x, scaled_y, scaled_w, scaled_h, scale_factor, offset_x, offset_y)
+            ax, style, scaled_x, scaled_y, scaled_w, scaled_h, scale_factor, offset_x, offset_y,
+            all_doors=all_doors)
         self._draw_label(ax, style, scaled_x, scaled_y, scaled_w, scaled_h)
         self._draw_dimensions(ax, style, scaled_x, scaled_y, scaled_w, scaled_h, w, h)
         self._draw_doors(ax, style, scale_factor, offset_x, offset_y)
@@ -142,7 +153,7 @@ class Room:
 
     def _draw_room_shape(
         self, ax, style, scaled_x, scaled_y, scaled_w, scaled_h,
-        scale_factor, offset_x, offset_y,
+        scale_factor, offset_x, offset_y, all_doors=None,
     ):
         room_style = style["line_styles"]["interior_wall"]
         facecolor = room_style.get("facecolor", "whitesmoke")
@@ -153,18 +164,27 @@ class Room:
             )
         )
         self._draw_wall_segments(
-            ax, style, scaled_x, scaled_y, scaled_w, scaled_h, scale_factor, offset_x, offset_y
+            ax, style, scaled_x, scaled_y, scaled_w, scaled_h, scale_factor, offset_x, offset_y,
+            all_doors=all_doors,
         )
 
     def _draw_wall_segments(
         self, ax, style, scaled_x, scaled_y, scaled_w, scaled_h,
-        scale_factor, offset_x, offset_y,
+        scale_factor, offset_x, offset_y, all_doors=None,
     ):
         # Door gaps must use the same scale/offset as the room itself.
         # (The original code hardcoded 25.0/0 here, so gaps drifted off
         # the walls at any other scale or once the plan was centred.)
+        # Gaps come from every door in the plan, not just this
+        # room's: _draw_wall_segment already filters by wall
+        # position, so doors on other walls are ignored, and a
+        # door listed only by the neighbouring room still cuts
+        # this room's wall. Duplicates (paired listings, or this
+        # room's doors also appearing in all_doors) collapse to
+        # one gap, so a wall is never split twice at one door.
+        seen = set()
         door_gaps = []
-        for door in self.doors:
+        for door in list(self.doors) + list(all_doors or []):
             pos = door.get("pos")
             if isinstance(pos, list) and len(pos) == 2:
                 (x1, y1), (x2, y2) = pos
@@ -172,6 +192,10 @@ class Room:
                 sy1 = y1 * scale_factor + offset_y
                 sx2 = x2 * scale_factor + offset_x
                 sy2 = y2 * scale_factor + offset_y
+                key = (sx1, sy1, sx2, sy2)
+                if key in seen:
+                    continue
+                seen.add(key)
                 door_gaps.append(
                     {"x1": sx1, "y1": sy1, "x2": sx2, "y2": sy2,
                      "is_vertical": abs(sx1 - sx2) < 1e-6}

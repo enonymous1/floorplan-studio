@@ -262,6 +262,20 @@ export function planToEditorObjects(plan, options = {}) {
   }
   const pixelsPerFoot = options.pixelsPerFoot || PIXELS_PER_FOOT;
   const objects = [];
+  // A shared door/window is one physical opening, even though a
+  // hand-written plan lists it in both rooms (paired, with
+  // opposite swings). Without dedupe, importing such a plan
+  // put two identical objects on the canvas at the same spot,
+  // and exporting then listed the door twice in the first
+  // room and not at all in the second. The first listing
+  // wins; its swing is the one the canvas object carries.
+  const seenSegments = new Set();
+  const isNewSegment = (type, x1, y1, x2, y2) => {
+    const key = `${type}:${x1},${y1},${x2},${y2}`;
+    if (seenSegments.has(key)) return false;
+    seenSegments.add(key);
+    return true;
+  };
 
   for (const room of plan.rooms) {
     const rect = rectFtToPx(room.rect, pixelsPerFoot);
@@ -269,6 +283,7 @@ export function planToEditorObjects(plan, options = {}) {
     objects.push(rectObj);
     for (const door of room.doors || []) {
       const [[x1, y1], [x2, y2]] = segmentFtToPx(door.pos, pixelsPerFoot);
+      if (!isNewSegment('door', x1, y1, x2, y2)) continue;
       const doorObj = { type: 'door', x1, y1, x2, y2, swingDirection: 1, hingeAtStart: true };
       if (door.editor) {
         if (door.editor.swingDirection !== undefined) doorObj.swingDirection = door.editor.swingDirection;
@@ -279,6 +294,7 @@ export function planToEditorObjects(plan, options = {}) {
     }
     for (const win of room.windows || []) {
       const [[x1, y1], [x2, y2]] = segmentFtToPx(win.pos, pixelsPerFoot);
+      if (!isNewSegment('window', x1, y1, x2, y2)) continue;
       objects.push({ type: 'window', x1, y1, x2, y2 });
     }
   }
@@ -289,6 +305,7 @@ export function planToEditorObjects(plan, options = {}) {
   for (const opening of plan.openings || []) {
     const [[x1, y1], [x2, y2]] = segmentFtToPx(opening.pos, pixelsPerFoot);
     if (opening.kind === 'door') {
+      if (!isNewSegment('door', x1, y1, x2, y2)) continue;
       const doorObj = { type: 'door', x1, y1, x2, y2, swingDirection: 1, hingeAtStart: true };
       if (opening.editor) {
         if (opening.editor.swingDirection !== undefined) doorObj.swingDirection = opening.editor.swingDirection;
@@ -297,6 +314,7 @@ export function planToEditorObjects(plan, options = {}) {
       if (opening.swing !== undefined) doorObj.swing = opening.swing;
       objects.push(doorObj);
     } else {
+      if (!isNewSegment('window', x1, y1, x2, y2)) continue;
       objects.push({ type: 'window', x1, y1, x2, y2 });
     }
   }

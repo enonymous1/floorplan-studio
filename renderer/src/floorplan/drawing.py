@@ -379,7 +379,11 @@ def draw_floor_plan(plan, style, output_dir="output", fmt="svg", extras=True):
                   doors=exterior_doors)
     draw_north_arrow(ax, style, scale_factor, page_width_points, page_height_points)
     for room in plan.rooms:
-        room.draw(ax, style, scale_factor, offset_x, offset_y, plan.boundary)
+        # Same list the boundary already uses: every room door
+        # plus standalone door openings, so a shared wall gaps
+        # at a door even when only one room listed it.
+        room.draw(ax, style, scale_factor, offset_x, offset_y, plan.boundary,
+                  all_doors=exterior_doors)
     _draw_walls(ax, plan, style, scale_factor, offset_x, offset_y)
     _draw_openings(ax, plan, style, scale_factor, offset_x, offset_y)
     _draw_labels(ax, plan, style, scale_factor, offset_x, offset_y)

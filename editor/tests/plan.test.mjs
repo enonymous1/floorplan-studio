@@ -59,6 +59,29 @@ test('walls, labels, dimensions and objects survive export', () => {
   ]);
 });
 
+test('paired door imports as one door object, not two', () => {
+  // A hand-written plan lists a shared door in both rooms
+  // (opposite swings). The canvas has one physical door, so
+  // import keeps the first listing only; without this, the
+  // canvas held two identical door objects, and export then
+  // listed the door twice in the first room and not at all
+  // in the second.
+  const plan = {
+    version: 1,
+    rooms: [
+      { name: 'A', rect: [0, 0, 10, 10], doors: [{ pos: [[10, 4], [10, 7]], swing: 'in' }] },
+      { name: 'B', rect: [10, 0, 10, 10], doors: [{ pos: [[10, 4], [10, 7]], swing: 'out' }] },
+    ],
+  };
+  const { objects } = planToEditorObjects(plan);
+  const doors = objects.filter((o) => o.type === 'door');
+  assert.equal(doors.length, 1);
+  assert.equal(doors[0].swing, 'in');
+  const back = editorObjectsToPlan(objects);
+  assert.equal(back.rooms[0].doors.length, 1);
+  assert.equal(back.rooms[1].doors.length, 0);
+});
+
 test('export -> import -> export round trip is exact', () => {
   const objects = [
     { ...room, name: 'Living Room' },

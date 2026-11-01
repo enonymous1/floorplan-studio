@@ -120,7 +120,14 @@ pans; the mouse wheel zooms toward the cursor.
   a label or road to rename it; double-click a dimension
   (with "Show Dimensions" on) to edit its value.
 - **Plan section** (bottom of the toolbar): **Export JSON**,
-  **Export YAML**, and **Import JSON**. Work is also autosaved
+  **Export YAML**, **Import JSON**, and **Load sample**.
+  Load sample loads the bundled sample house
+  (`editor/sample-plan.json`, a copy of
+  `examples/floor_plan.json`) straight into the canvas,
+  no file needed — the way to try the editor on the
+  Pages site. Like Import, it replaces the canvas and
+  resets Undo history, so export first if you want to
+  keep your current work. Work is also autosaved
   to the browser's local storage as a plan, so a refresh
   restores the canvas. **Clear** empties the canvas and is
   undoable with Undo (Ctrl+Z) / Redo (Ctrl+Y).
@@ -505,4 +512,8 @@ hallway, a master bedroom with separate doors to its
 closet and its bath instead of a closet-to-bath
 series, and a 14 ft open passage between the Great
 Room and Kitchen/Dining. See [CHANGELOG.md](CHANGELOG.md)
-for what changed and what was removed.
+for what changed and what was removed. Version 2.2.4
+adds the GitHub Pages workflow for the editor and a
+Load sample button that loads the bundled sample house
+into the canvas, so the Pages site is usable without
+hunting down an example file first.

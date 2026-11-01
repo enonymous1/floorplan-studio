@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.4 — 2026-11-01
 
 - GitHub Pages workflow for the editor
   (`.github/workflows/pages.yml`, as documented in the
@@ -9,9 +9,38 @@
   manual dispatch, it runs the editor's test, syntax
   check, and CSS build, then deploys `editor/` via
   `configure-pages` / `upload-pages-artifact` /
-  `deploy-pages`. No version bump: this is repo
-  automation, not shipped code. One-time setup after
-  push: Settings → Pages → Source: GitHub Actions.
+  `deploy-pages`. One-time setup after push:
+  Settings → Pages → Source: GitHub Actions.
+- **Load sample** button in the editor's Plan section:
+  it loads the bundled sample house straight into the
+  canvas, no file needed. The sample is
+  `editor/sample-plan.json`, a copy of
+  `examples/floor_plan.json`, kept identical by a new
+  CI contract check — it has to live inside `editor/`
+  because the Pages artifact uploads only that folder,
+  so the repo's `examples/` file never deploys. Load
+  sample shares Import's code path exactly (history
+  reset, autosave, redraw); like Import, it replaces
+  the canvas, so export first if you want to keep
+  your current work. If the editor was opened from a
+  `file://` URL, the fetch cannot run and the alert
+  says so, pointing at Import with the repo's example
+  file instead.
+- Two fixes Load sample exposed, both needed for the
+  load -> export -> render loop to work at all:
+  importing a paired plan used to put two identical
+  door objects on the canvas (one per room listing),
+  and exporting then listed each shared door twice
+  in the first room and not at all in the second.
+  Import now dedupes shared door/window segments
+  (first listing wins), and the renderer now gaps a
+  shared wall at any door listed by either room
+  (wall gaps come from every door in the plan, not
+  just the room's own; leaf/arc drawing is unchanged
+  and still comes from the listing room). Before
+  this, an editor export of any shared-wall door
+  rendered with the neighbour's wall drawn straight
+  across the gap.
 
 ## 2.2.3 — 2026-11-01
 

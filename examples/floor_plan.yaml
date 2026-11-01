@@ -63,7 +63,7 @@ boundary:
 # 2. No walking through a closet to reach a bathroom.
 # The previous sample ran Primary Bedroom -> Closet ->
 # Bath in series. Here the Master Bedroom has two
-# separate doors on its north wall: one to the Walk-in
+# separate doors on its north wall: one to the
 # Closet, one to the Master Bath. Both rooms are
 # directly off the bedroom, and they share no door
 # with each other.
@@ -74,14 +74,17 @@ boundary:
 # needs rectangles, so the opening between them is
 # 14 ft wide (swing "none"), not a 3 ft doorway.
 #
-# Circulation, read before editing: every room draws its own
-# walls, so a door between two rooms must be listed in BOTH
-# rooms, or one side's wall draws straight across the gap.
-# The two listings use opposite swing flags so the leaf and arc
-# match: "in" for the room the door swings into, "out" for the
-# other room. A door listed in only one room, or a bedroom door
-# on a wall shared with another bedroom, is a broken plan, not
-# a rendering quirk.
+# Circulation, read before editing: this sample lists a
+# door between two rooms in BOTH rooms, with opposite
+# swing flags so the leaf and arc match: "in" for the room
+# the door swings into, "out" for the other room. That
+# pairing is still the convention for hand-written plans,
+# but it is no longer required for the wall gap: since
+# v2.2.4 the renderer gaps a shared wall at any door
+# listed by either room, so an editor export (which
+# attaches each door to one room) renders correctly too.
+# A bedroom door on a wall shared with another bedroom
+# is still a broken plan, not a rendering quirk.
 rooms:
   - name: Great Room
     rect: [12, 0, 18, 19]  # South-centre, entry from the Covered Porch (342 sq ft)

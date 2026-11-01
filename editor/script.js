@@ -627,7 +627,7 @@ redoBtn.addEventListener('click', redo);
 document.getElementById('toolbar').addEventListener('click', e => {
     const button = e.target.closest('button');
     if (!button) return;
-    if (['export-json-btn', 'export-yaml-btn', 'import-btn', 'clear-canvas', 'undo-btn', 'redo-btn'].includes(button.id)) return;
+    if (['export-json-btn', 'export-yaml-btn', 'import-btn', 'load-sample-btn', 'clear-canvas', 'undo-btn', 'redo-btn'].includes(button.id)) return;
     const tool = button.id.replace('-tool', '');
     if (tool === 'objects') {
         if (allowModalOpen) showModal(document.getElementById('object-library-modal'));
@@ -677,6 +677,22 @@ document.getElementById('export-json-btn').addEventListener('click', () => {
 document.getElementById('export-yaml-btn').addEventListener('click', () => {
     downloadFile('floor-plan.yaml', serializePlanYaml(currentPlan()), 'text/yaml');
 });
+// Shared by Import and Load sample: replacing the canvas with a
+// plan JSON, resetting history to it and autosaving it. (Like
+// Import, this discards the previous canvas — export first if
+// you want to keep it; Undo cannot reach back past a load.)
+function loadPlanFromJson(text) {
+    const { objects, boundary, meta } = planToEditorObjects(parsePlanJson(text));
+    state.objects = objects;
+    state.selectedObject = null;
+    state.planBoundary = boundary;
+    state.planMeta = meta;
+    state.history = [JSON.parse(JSON.stringify(objects))];
+    state.historyIndex = 0;
+    updateButtonStates();
+    persistPlan();
+    draw();
+}
 const importFileInput = document.getElementById('import-file');
 document.getElementById('import-btn').addEventListener('click', () => importFileInput.click());
 importFileInput.addEventListener('change', () => {
@@ -691,20 +707,26 @@ importFileInput.addEventListener('change', () => {
         importFileInput.value = '';
         return;
     }
-    file.text().then((text) => {
-        const { objects, boundary, meta } = planToEditorObjects(parsePlanJson(text));
-        state.objects = objects;
-        state.selectedObject = null;
-        state.planBoundary = boundary;
-        state.planMeta = meta;
-        state.history = [JSON.parse(JSON.stringify(objects))];
-        state.historyIndex = 0;
-        updateButtonStates();
-        persistPlan();
-        draw();
-    }).catch((err) => {
+    file.text().then(loadPlanFromJson).catch((err) => {
         alert(`Could not import that plan: ${err.message}`);
     }).finally(() => { importFileInput.value = ''; });
+});
+// The bundled sample: editor/sample-plan.json is a copy of
+// examples/floor_plan.json, kept identical by a CI contract
+// check, so it ships inside the Pages artifact (which uploads
+// only editor/) and works wherever the editor is served.
+// A relative fetch, so it resolves under a Pages subpath too;
+// opening the editor from a file:// URL cannot fetch, and the
+// alert says so with the Import fallback.
+document.getElementById('load-sample-btn').addEventListener('click', () => {
+    fetch('sample-plan.json').then((res) => {
+        if (!res.ok) throw new Error(`sample plan not found (${res.status})`);
+        return res.text();
+    }).then(loadPlanFromJson).catch((err) => {
+        alert(`Could not load the sample plan: ${err.message}\n\n`
+            + 'If you opened the editor from a file, serve it with a static server instead, '
+            + 'or use Import JSON with examples/floor_plan.json from the repo.');
+    });
 });
 
 setActiveTool('wall');
