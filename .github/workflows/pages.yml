@@ -43,7 +43,7 @@ jobs:
       - name: Build editor CSS
         working-directory: editor
         run: npm run build:css
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: editor
